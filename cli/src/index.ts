@@ -11,13 +11,14 @@ import {
   registerAssignCommands,
   registerTargetCommands,
 } from './commands/index.ts'
+import pkg from '../package.json'
 
 const program = new Command()
 
 program
   .name('budget')
   .description('Personal budget management CLI')
-  .version('0.1.0')
+  .version(pkg.version)
   .option('--json', 'Output in JSON format')
   .option('--quiet', 'Minimal output (IDs only)')
   .option('--db <path>', 'Path to SQLite database file')
