@@ -1,0 +1,164 @@
+.transaction-list {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.transaction-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.transaction-list-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.add-transaction-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.6em 1.2em;
+  border-radius: 8px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: var(--transition-colors), transform var(--transition-fast) var(--ease-out);
+}
+
+.add-transaction-btn:hover {
+  background-color: #45a049;
+  border-color: transparent;
+}
+
+.add-transaction-btn:active {
+  transform: scale(0.98);
+  background-color: #3d8b40;
+}
+
+.empty-message {
+  color: #a0aec0;
+  text-align: center;
+  padding: 2rem;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.transaction-table th,
+.transaction-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+.transaction-table th {
+  font-weight: 600;
+  color: #cbd5e0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.transaction-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.amount-col {
+  text-align: right;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+}
+
+.amount-col.inflow {
+  color: #4caf50;
+}
+
+.amount-col.outflow {
+  color: #f44336;
+}
+
+.actions-col {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.action-btn {
+  background: none;
+  border: 1px solid #555;
+  color: inherit;
+  padding: 0 0.6em;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 0.3rem;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  box-sizing: border-box;
+  transition: var(--transition-colors), transform var(--transition-fast) var(--ease-out);
+}
+
+.action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #888;
+}
+
+.action-btn:active {
+  transform: scale(0.9);
+}
+
+.action-btn.edit-btn {
+  color: #64b5f6;
+  border-color: #64b5f6;
+}
+
+.action-btn.edit-btn:hover {
+  background-color: rgba(100, 181, 246, 0.1);
+}
+
+.action-btn.delete-btn {
+  color: #cb2431;
+  border-color: #cb2431;
+  padding: 0 0.5em;
+}
+
+.action-btn.delete-btn:hover {
+  background-color: rgba(203, 36, 49, 0.1);
+}
+
+.action-btn.delete-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+@media (prefers-color-scheme: light) {
+  .transaction-table th,
+  .transaction-table td {
+    border-bottom: 1px solid #ddd;
+  }
+
+  .transaction-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .transaction-table th {
+    color: #666;
+  }
+
+  .action-btn {
+    border-color: #ccc;
+  }
+
+  .action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: #999;
+  }
+}

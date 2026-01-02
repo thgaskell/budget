@@ -1,0 +1,107 @@
+/* LoadingButton - A button with loading state support */
+
+.loading-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition-colors), var(--transition-opacity);
+  min-width: 80px;
+}
+
+.loading-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Primary variant (blue) */
+.loading-button--primary {
+  background-color: #646cff;
+  color: white;
+}
+
+.loading-button--primary:hover:not(:disabled) {
+  background-color: #535bf2;
+}
+
+.loading-button--primary:focus,
+.loading-button--primary:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Danger variant (red) */
+.loading-button--danger {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.loading-button--danger:hover:not(:disabled) {
+  background-color: #ee5a5a;
+}
+
+.loading-button--danger:focus,
+.loading-button--danger:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Secondary variant (gray) */
+.loading-button--secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.loading-button--secondary:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+.loading-button--secondary:focus,
+.loading-button--secondary:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Loading state */
+.loading-button--loading {
+  pointer-events: none;
+}
+
+/* Spinner */
+.loading-button__spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading-button-spin 0.6s linear infinite;
+}
+
+@keyframes loading-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hidden text during loading (maintains button size) */
+.loading-button__text--hidden {
+  visibility: hidden;
+  width: 0;
+  overflow: hidden;
+}
+
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+  .loading-button--secondary {
+    background-color: #6c757d;
+  }
+
+  .loading-button--secondary:hover:not(:disabled) {
+    background-color: #5a6268;
+  }
+}

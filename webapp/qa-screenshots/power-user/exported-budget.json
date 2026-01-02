@@ -1,0 +1,125 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-01-02T19:35:48.306Z",
+  "budget": {
+    "id": "58f9def3-d287-4bc7-b930-90e03f490738",
+    "name": "Budget",
+    "currency": "USD"
+  },
+  "accounts": [
+    {
+      "id": "d61f32d8-9d17-45a1-8b8b-279aba89595a",
+      "budgetId": "58f9def3-d287-4bc7-b930-90e03f490738",
+      "name": "Cash",
+      "type": "cash",
+      "onBudget": true
+    }
+  ],
+  "categoryGroups": [
+    {
+      "id": "6a1908c9-cc31-4307-9169-b79926b264af",
+      "budgetId": "58f9def3-d287-4bc7-b930-90e03f490738",
+      "name": "Bills",
+      "sortOrder": 0
+    },
+    {
+      "id": "bb2e3201-20d4-4f1e-8a3f-2d26557f66f7",
+      "budgetId": "58f9def3-d287-4bc7-b930-90e03f490738",
+      "name": "Food",
+      "sortOrder": 1
+    }
+  ],
+  "categories": [
+    {
+      "id": "5e296280-2356-4431-9760-6957efcb6218",
+      "groupId": "6a1908c9-cc31-4307-9169-b79926b264af",
+      "name": "Rent",
+      "sortOrder": 0
+    },
+    {
+      "id": "32210be2-13f7-46bb-8969-e151001f7946",
+      "groupId": "bb2e3201-20d4-4f1e-8a3f-2d26557f66f7",
+      "name": "Groceries",
+      "sortOrder": 0
+    },
+    {
+      "id": "f58067c0-fe9e-4865-b95f-e6def6b05f94",
+      "groupId": "6a1908c9-cc31-4307-9169-b79926b264af",
+      "name": "Utilities",
+      "sortOrder": 1
+    }
+  ],
+  "transactions": [
+    {
+      "id": "9e65e12d-e7c1-4006-bcbb-ec4f7431cd59",
+      "accountId": "d61f32d8-9d17-45a1-8b8b-279aba89595a",
+      "categoryId": "32210be2-13f7-46bb-8969-e151001f7946",
+      "payeeId": "99732c16-59be-4f4f-be8a-c3a46e554298",
+      "date": "2026-01-02",
+      "amount": -15000,
+      "cleared": false,
+      "memo": null,
+      "transferAccountId": null
+    },
+    {
+      "id": "0cf4fe4f-b236-4215-b769-0361afd8f895",
+      "accountId": "d61f32d8-9d17-45a1-8b8b-279aba89595a",
+      "categoryId": "5e296280-2356-4431-9760-6957efcb6218",
+      "payeeId": "70fcf518-5d3d-4ff4-9609-e502396c68f9",
+      "date": "2026-01-02",
+      "amount": -120000,
+      "cleared": false,
+      "memo": null,
+      "transferAccountId": null
+    },
+    {
+      "id": "a9e1df93-8f5d-4383-a126-c04dbb3299cd",
+      "accountId": "d61f32d8-9d17-45a1-8b8b-279aba89595a",
+      "categoryId": null,
+      "payeeId": "2d39fe57-a1d5-485b-9ac1-da9ecdb4a0e3",
+      "date": "2026-01-02",
+      "amount": 300000,
+      "cleared": false,
+      "memo": null,
+      "transferAccountId": null
+    }
+  ],
+  "payees": [
+    {
+      "id": "99732c16-59be-4f4f-be8a-c3a46e554298",
+      "budgetId": "58f9def3-d287-4bc7-b930-90e03f490738",
+      "name": "Grocery Store"
+    },
+    {
+      "id": "70fcf518-5d3d-4ff4-9609-e502396c68f9",
+      "budgetId": "58f9def3-d287-4bc7-b930-90e03f490738",
+      "name": "Landlord"
+    },
+    {
+      "id": "2d39fe57-a1d5-485b-9ac1-da9ecdb4a0e3",
+      "budgetId": "58f9def3-d287-4bc7-b930-90e03f490738",
+      "name": "Paycheck"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "dbe73cd2-9fbb-4983-89b2-9aab13d8b841",
+      "categoryId": "5e296280-2356-4431-9760-6957efcb6218",
+      "month": "2026-01",
+      "amount": 120000
+    },
+    {
+      "id": "eb62bb0e-c9c8-4eb9-9353-24f15c2220a4",
+      "categoryId": "f58067c0-fe9e-4865-b95f-e6def6b05f94",
+      "month": "2026-01",
+      "amount": 20000
+    },
+    {
+      "id": "00b63ea7-6a2a-487e-8bcc-ae637d3aacd3",
+      "categoryId": "32210be2-13f7-46bb-8969-e151001f7946",
+      "month": "2026-01",
+      "amount": 40000
+    }
+  ],
+  "targets": []
+}

@@ -1,0 +1,481 @@
+/* Budget Table Container */
+.budget-table-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Ready to Assign Header */
+.ready-to-assign {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.ready-to-assign--positive {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.ready-to-assign--negative {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.ready-to-assign--zero {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.ready-to-assign__label {
+  font-size: 1rem;
+}
+
+.ready-to-assign__amount {
+  font-size: 1.5rem;
+}
+
+/* Budget Table */
+.budget-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--table-bg, #ffffff);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Table Header */
+.budget-table__header {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  background-color: var(--header-bg, #f7fafc);
+  border-bottom: 2px solid var(--border-color, #e2e8f0);
+}
+
+.budget-table__header--amount {
+  text-align: right;
+  width: 120px;
+}
+
+/* Table Cells */
+.budget-table__cell {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.budget-table__cell--amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-table__cell--positive {
+  color: #22863a;
+}
+
+.budget-table__cell--negative {
+  color: #cb2431;
+}
+
+/* Uncategorized Row - warning style for spending without a category */
+.budget-table__uncategorized-row {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.budget-table__uncategorized-row:hover {
+  background-color: #ffecb5;
+}
+
+.budget-table__cell--uncategorized-name {
+  font-weight: 600;
+  color: #856404;
+  padding-left: 1rem;
+}
+
+/* Inherited value - shows previous month's allocation when no explicit value set */
+.budget-table__inherited-value {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* Group Row */
+.budget-table__group-row {
+  cursor: pointer;
+  background-color: var(--group-bg, #f1f5f9);
+  font-weight: 600;
+  animation: slideIn var(--transition-medium) var(--ease-out);
+}
+
+.budget-table__group-row:hover {
+  background-color: var(--group-hover-bg, #e2e8f0);
+}
+
+.budget-table__cell--group-name {
+  /* Styling handled by child elements */
+}
+
+.budget-table__collapse-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 1rem;
+  color: var(--collapse-icon-color, #64748b);
+}
+
+.budget-table__cell--group-total {
+  font-weight: 600;
+}
+
+/* Category Row */
+.budget-table__category-row {
+  background-color: var(--category-bg, #ffffff);
+  animation: slideIn var(--transition-medium) var(--ease-out);
+}
+
+.budget-table__category-row:hover {
+  background-color: var(--category-hover-bg, #f8fafc);
+}
+
+.budget-table__cell--category-name {
+  padding-left: 2.5rem;
+}
+
+/* Editable Cell */
+.budget-table__cell--editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.budget-table__cell--editable:hover {
+  background-color: var(--editable-hover-bg, #edf2f7);
+}
+
+/* Edit Input */
+.budget-table__edit-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: inherit;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  border: 2px solid #3182ce;
+  border-radius: 4px;
+  outline: none;
+  background-color: #ffffff;
+}
+
+.budget-table__edit-input:focus {
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
+}
+
+.budget-table__edit-input--name {
+  text-align: left;
+}
+
+/* Editing State */
+.budget-table__cell--editing {
+  background-color: #fffde7;
+  box-shadow: inset 0 0 0 2px #4CAF50;
+}
+
+/* Error State for Editing */
+.budget-table__cell--has-error {
+  background-color: #fff5f5;
+  box-shadow: inset 0 0 0 2px #cb2431;
+}
+
+/* Edit Wrapper for Positioning */
+.budget-table__edit-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.budget-table__edit-wrapper .error-message {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  white-space: nowrap;
+  z-index: 10;
+  background-color: #fff5f5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Actions Column */
+.budget-table__header--actions {
+  width: 80px;
+}
+
+.budget-table__cell--actions {
+  text-align: right;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--transition-fast) var(--ease-in-out);
+}
+
+.budget-table__cell--actions > * {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.budget-table__group-row:hover .budget-table__cell--actions,
+.budget-table__category-row:hover .budget-table__cell--actions {
+  opacity: 1;
+}
+
+.budget-table__action-btn {
+  background: none;
+  border: 1px solid var(--border-color, #ccc);
+  color: inherit;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 0.25rem;
+  font-size: 0.9rem;
+  transition: var(--transition-colors), transform var(--transition-fast) var(--ease-out);
+}
+
+.budget-table__action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: #999;
+}
+
+.budget-table__action-btn:active {
+  transform: scale(0.9);
+}
+
+.budget-table__action-btn--delete {
+  color: #cb2431;
+  border-color: #cb2431;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.budget-table__action-btn--delete:hover {
+  background-color: rgba(203, 36, 49, 0.1);
+}
+
+.budget-table__action-btn--delete svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* Name text - clickable for edit */
+.budget-table__group-name-text,
+.budget-table__category-name-text {
+  cursor: pointer;
+}
+
+.budget-table__group-name-text {
+  padding-left: 0.5rem;
+}
+
+.budget-table__group-name-text:hover,
+.budget-table__category-name-text:hover {
+  text-decoration: underline;
+}
+
+/* Add Category Row */
+.budget-table__add-category-row .budget-table__cell {
+  padding: 0.5rem 1rem;
+  padding-left: 2.5rem;
+}
+
+.budget-table__add-category-input {
+  padding: 0.4rem 0.6rem;
+  font-size: inherit;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  width: 200px;
+}
+
+.budget-table__add-category-btn,
+.budget-table__cancel-category-btn {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.25rem;
+}
+
+.budget-table__add-category-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+}
+
+.budget-table__add-category-btn:hover {
+  background-color: #45a049;
+}
+
+.budget-table__cancel-category-btn {
+  background: none;
+  border: 1px solid var(--border-color, #ccc);
+  color: inherit;
+}
+
+.budget-table__cancel-category-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Add Group Row */
+.add-group-row {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.add-group-btn {
+  background: none;
+  border: 1px dashed var(--border-color, #ccc);
+  color: inherit;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: 100%;
+  text-align: left;
+  transition: var(--transition-colors);
+}
+
+.add-group-btn:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: #999;
+}
+
+.add-group-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.add-group-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: inherit;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+}
+
+.add-group-save-btn,
+.add-group-cancel-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-group-save-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+}
+
+.add-group-save-btn:hover {
+  background-color: #45a049;
+}
+
+.add-group-cancel-btn {
+  background: none;
+  border: 1px solid var(--border-color, #ccc);
+  color: inherit;
+}
+
+.add-group-cancel-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .budget-table-container {
+    --table-bg: #1a202c;
+    --header-bg: #2d3748;
+    --border-color: #4a5568;
+    --group-bg: #2d3748;
+    --group-hover-bg: #4a5568;
+    --category-bg: #1a202c;
+    --category-hover-bg: #2d3748;
+    --editable-hover-bg: #2d3748;
+    --collapse-icon-color: #a0aec0;
+  }
+
+  .budget-table__header {
+    color: #cbd5e0;
+  }
+
+  .budget-table__uncategorized-row {
+    background-color: #744210;
+    border-left-color: #d69e2e;
+  }
+
+  .budget-table__uncategorized-row:hover {
+    background-color: #975a16;
+  }
+
+  .budget-table__cell--uncategorized-name {
+    color: #faf089;
+  }
+
+  .ready-to-assign--positive {
+    background-color: #276749;
+    color: #c6f6d5;
+  }
+
+  .ready-to-assign--negative {
+    background-color: #9b2c2c;
+    color: #fed7d7;
+  }
+
+  .ready-to-assign--zero {
+    background-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .budget-table__cell--positive {
+    color: #68d391;
+  }
+
+  .budget-table__cell--negative {
+    color: #fc8181;
+  }
+
+  .budget-table__edit-input {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border-color: #4299e1;
+  }
+
+  .budget-table__cell--editing {
+    background-color: #3d3c00;
+    box-shadow: inset 0 0 0 2px #81c784;
+  }
+
+  .budget-table__cell--has-error {
+    background-color: #3d1c1c;
+    box-shadow: inset 0 0 0 2px #fc8181;
+  }
+
+  .budget-table__edit-wrapper .error-message {
+    background-color: #3d1c1c;
+    color: #fc8181;
+  }
+}

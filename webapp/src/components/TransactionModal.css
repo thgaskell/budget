@@ -1,0 +1,178 @@
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal-backdrop);
+}
+
+.modal-content {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #888;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #fff;
+  border-color: transparent;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background-color: #2a2a2a;
+  color: inherit;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.amount-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.amount-input-group .flow-select {
+  width: 50px !important;
+  flex: 0 0 50px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.currency-symbol {
+  color: #888;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.amount-input-group input[type="number"] {
+  flex: 1 1 auto;
+  min-width: 80px;
+  width: auto !important;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.form-actions .delete-btn,
+.form-actions .cancel-btn,
+.form-actions .save-btn {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition-colors);
+}
+
+.form-actions .delete-btn {
+  background-color: #f44336;
+  border: none;
+  color: white;
+  flex: 0 0 auto;
+}
+
+.form-actions .delete-btn:hover {
+  background-color: #d32f2f;
+  border-color: transparent;
+}
+
+.form-actions .cancel-btn {
+  background-color: transparent;
+  border: 1px solid #444;
+  color: #aaa;
+}
+
+.form-actions .cancel-btn:hover {
+  background-color: #333;
+  border-color: #555;
+}
+
+.form-actions .save-btn {
+  background-color: #4caf50;
+  border: none;
+  color: white;
+}
+
+.form-actions .save-btn:hover {
+  background-color: #45a049;
+  border-color: transparent;
+}
+
+@media (prefers-color-scheme: light) {
+  .modal-content {
+    background-color: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .form-group input,
+  .form-group select {
+    border-color: #ddd;
+    background-color: #fff;
+  }
+
+  .form-actions .cancel-btn {
+    border-color: #ccc;
+    color: #666;
+  }
+
+  .form-actions .cancel-btn:hover {
+    background-color: #f5f5f5;
+  }
+}

@@ -1,0 +1,178 @@
+.month-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.month-navigation__btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: var(--transition-colors), transform var(--transition-fast) var(--ease-out);
+}
+
+.month-navigation__btn:hover {
+  background: #f0f0f0;
+}
+
+.month-navigation__btn:active {
+  transform: scale(0.95);
+  background: #e0e0e0;
+}
+
+.month-navigation__btn--prev,
+.month-navigation__btn--next {
+  min-width: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-navigation__btn--prev svg,
+.month-navigation__btn--next svg {
+  display: block;
+}
+
+/* Fixed-width slots for Today button to prevent layout shift */
+.month-navigation__today-slot {
+  width: 70px; /* Fixed width to match Today button */
+  display: flex;
+  justify-content: center;
+}
+
+.month-navigation__today-slot--left {
+  justify-content: flex-end;
+  margin-right: 0.5rem;
+}
+
+.month-navigation__today-slot--right {
+  justify-content: flex-start;
+  margin-left: 0.5rem;
+}
+
+.month-navigation__btn--today {
+  padding: 0.5rem 1rem;
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+
+.month-navigation__btn--today:hover {
+  background: #0052a3;
+}
+
+.month-navigation__btn--today:active {
+  transform: scale(0.95);
+  background: #004080;
+}
+
+.month-navigation__display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 180px;
+  padding: 0 1rem;
+}
+
+.month-navigation__month {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.month-navigation__month--past {
+  color: #666;
+}
+
+.month-navigation__month--current {
+  color: #000;
+}
+
+.month-navigation__month--future {
+  color: #0066cc;
+}
+
+.month-navigation__indicator {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.125rem;
+}
+
+.month-navigation__indicator--past {
+  color: #888;
+}
+
+.month-navigation__indicator--current {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.month-navigation__indicator--future {
+  color: #0066cc;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .month-navigation__month {
+    color: #e2e8f0;
+  }
+
+  .month-navigation__month--past {
+    color: #a0aec0;
+  }
+
+  .month-navigation__month--current {
+    color: #e2e8f0;
+  }
+
+  .month-navigation__month--future {
+    color: #63b3ed;
+  }
+
+  .month-navigation__btn {
+    color: #a0aec0;
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+
+  .month-navigation__btn:hover {
+    background-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .month-navigation__btn:active {
+    background-color: #1a202c;
+  }
+
+  .month-navigation__btn--today {
+    background: #3182ce;
+    color: #fff;
+    border-color: #3182ce;
+  }
+
+  .month-navigation__btn--today:hover {
+    background: #2b6cb0;
+    border-color: #2b6cb0;
+  }
+
+  .month-navigation__btn--today:active {
+    background: #2c5282;
+    border-color: #2c5282;
+  }
+
+  .month-navigation__indicator--past {
+    color: #718096;
+  }
+
+  .month-navigation__indicator--current {
+    color: #68d391;
+  }
+
+  .month-navigation__indicator--future {
+    color: #63b3ed;
+  }
+}
