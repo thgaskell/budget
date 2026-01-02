@@ -3,6 +3,7 @@ import type { Assignment } from '../schemas/assignment.ts'
 import type { Budget } from '../schemas/budget.ts'
 import type { Category } from '../schemas/category.ts'
 import type { CategoryGroup } from '../schemas/category-group.ts'
+import type { MonthSummary } from '../schemas/month-summary.ts'
 import type { Payee } from '../schemas/payee.ts'
 import type { Target } from '../schemas/target.ts'
 import type { Transaction } from '../schemas/transaction.ts'
@@ -67,6 +68,13 @@ export interface Store {
   // Assignment
   getAssignment(categoryId: string, month: string): Assignment | null
   listAssignments(budgetId: string, month: string): Assignment[]
+  listAllAssignmentsForBudget(budgetId: string): Assignment[]
   saveAssignment(assignment: Assignment): void
   deleteAssignment(categoryId: string, month: string): void
+
+  // MonthSummary
+  getMonthSummary(budgetId: string, month: string): MonthSummary | null
+  listMonthSummaries(budgetId: string): MonthSummary[]
+  saveMonthSummary(summary: MonthSummary): void
+  deleteMonthSummary(budgetId: string, month: string): void
 }

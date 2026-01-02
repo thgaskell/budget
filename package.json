@@ -20,7 +20,8 @@
   },
   "workspaces": [
     "core",
-    "cli"
+    "cli",
+    "webapp"
   ],
   "dependencies": {
     "sql.js": "^1.13.0"

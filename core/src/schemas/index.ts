@@ -27,3 +27,16 @@ export { createTarget } from './target.ts'
 
 export type { Assignment } from './assignment.ts'
 export { createAssignment, getMonth } from './assignment.ts'
+
+export type { MonthSummary } from './month-summary.ts'
+export {
+  createMonthSummary,
+  getMonthStart,
+  getMonthEnd,
+  getPreviousMonth,
+  getNextMonth,
+  compareMonths,
+  isMonthBefore,
+  isMonthAfter,
+  getMonthRange,
+} from './month-summary.ts'

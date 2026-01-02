@@ -1,4 +1,5 @@
 import type { Store } from '../stores/types.ts'
+import { getMonthEnd } from '../schemas/month-summary.ts'
 
 /**
  * Calculate Ready to Assign (unassigned pool) for a budget.
@@ -20,10 +21,16 @@ export function getReadyToAssign(store: Store, budgetId: string, throughMonth: s
   // Categorized expenses do NOT reduce Ready to Assign
   const monthEnd = getMonthEnd(throughMonth)
   let totalInflows = 0
+  let earliestYear = Infinity
 
   for (const account of accounts) {
     const transactions = store.listTransactions(account.id, { to: monthEnd })
     for (const txn of transactions) {
+      // Track earliest transaction year for assignment lookups
+      const txnYear = parseInt(txn.date.split('-')[0])
+      if (txnYear < earliestYear) {
+        earliestYear = txnYear
+      }
       // Only count inflows (positive amounts) - income
       if (txn.amount > 0) {
         totalInflows += txn.amount
@@ -37,12 +44,17 @@ export function getReadyToAssign(store: Store, budgetId: string, throughMonth: s
   // Get all categories for this budget
   const categories = store.listCategories(budgetId)
 
-  // Sum assignments for all months up to throughMonth
+  // Sum assignments for all months from earliest transaction year to throughMonth
   const [year, monthNum] = throughMonth.split('-').map(Number)
-  for (let y = year - 1; y <= year; y++) {
-    const startMonth = y < year ? 1 : 1
+
+  // If no transactions found, use the throughMonth year
+  if (earliestYear === Infinity) {
+    earliestYear = year
+  }
+
+  for (let y = earliestYear; y <= year; y++) {
     const endMonth = y < year ? 12 : monthNum
-    for (let m = startMonth; m <= endMonth; m++) {
+    for (let m = 1; m <= endMonth; m++) {
       const monthKey = `${y}-${String(m).padStart(2, '0')}`
       for (const category of categories) {
         const assignment = store.getAssignment(category.id, monthKey)
@@ -54,13 +66,4 @@ export function getReadyToAssign(store: Store, budgetId: string, throughMonth: s
   }
 
   return totalInflows - totalAssigned
-}
-
-/**
- * Get the last day of a month in YYYY-MM-DD format.
- */
-function getMonthEnd(month: string): string {
-  const [year, monthNum] = month.split('-').map(Number)
-  const lastDay = new Date(year, monthNum, 0).getDate()
-  return `${month}-${String(lastDay).padStart(2, '0')}`
 }

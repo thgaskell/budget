@@ -3,6 +3,7 @@ import type { Assignment } from '../schemas/assignment.ts'
 import type { Budget } from '../schemas/budget.ts'
 import type { Category } from '../schemas/category.ts'
 import type { CategoryGroup } from '../schemas/category-group.ts'
+import type { MonthSummary } from '../schemas/month-summary.ts'
 import type { Payee } from '../schemas/payee.ts'
 import type { Target } from '../schemas/target.ts'
 import type { Transaction } from '../schemas/transaction.ts'
@@ -22,6 +23,7 @@ export class MemoryStore implements Store {
   private payees = new Map<string, Payee>()
   private targets = new Map<string, Target>() // keyed by categoryId
   private assignments = new Map<string, Assignment>() // keyed by "categoryId:month"
+  private monthSummaries = new Map<string, MonthSummary>() // keyed by "budgetId:month"
 
   // Budget
   getBudget(id: string): Budget | null {
@@ -182,11 +184,41 @@ export class MemoryStore implements Store {
     )
   }
 
+  listAllAssignmentsForBudget(budgetId: string): Assignment[] {
+    const categoryIds = new Set(this.listCategories(budgetId).map((c) => c.id))
+    return Array.from(this.assignments.values()).filter(
+      (a) => categoryIds.has(a.categoryId)
+    )
+  }
+
   saveAssignment(assignment: Assignment): void {
     this.assignments.set(this.assignmentKey(assignment.categoryId, assignment.month), assignment)
   }
 
   deleteAssignment(categoryId: string, month: string): void {
     this.assignments.delete(this.assignmentKey(categoryId, month))
+  }
+
+  // MonthSummary
+  private monthSummaryKey(budgetId: string, month: string): string {
+    return `${budgetId}:${month}`
+  }
+
+  getMonthSummary(budgetId: string, month: string): MonthSummary | null {
+    return this.monthSummaries.get(this.monthSummaryKey(budgetId, month)) ?? null
+  }
+
+  listMonthSummaries(budgetId: string): MonthSummary[] {
+    return Array.from(this.monthSummaries.values())
+      .filter((s) => s.budgetId === budgetId)
+      .sort((a, b) => a.month.localeCompare(b.month))
+  }
+
+  saveMonthSummary(summary: MonthSummary): void {
+    this.monthSummaries.set(this.monthSummaryKey(summary.budgetId, summary.month), summary)
+  }
+
+  deleteMonthSummary(budgetId: string, month: string): void {
+    this.monthSummaries.delete(this.monthSummaryKey(budgetId, month))
   }
 }

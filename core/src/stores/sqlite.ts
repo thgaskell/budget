@@ -4,6 +4,7 @@ import type { Assignment } from '../schemas/assignment.ts'
 import type { Budget } from '../schemas/budget.ts'
 import type { Category } from '../schemas/category.ts'
 import type { CategoryGroup } from '../schemas/category-group.ts'
+import type { MonthSummary } from '../schemas/month-summary.ts'
 import type { Payee } from '../schemas/payee.ts'
 import type { Target } from '../schemas/target.ts'
 import type { Transaction } from '../schemas/transaction.ts'
@@ -105,6 +106,17 @@ export class SqliteStore implements Store {
         UNIQUE (category_id, month)
       );
 
+      CREATE TABLE IF NOT EXISTS month_summaries (
+        id TEXT PRIMARY KEY,
+        budget_id TEXT NOT NULL,
+        month TEXT NOT NULL,
+        closing_rta INTEGER NOT NULL,
+        category_balances TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (budget_id) REFERENCES budgets(id),
+        UNIQUE (budget_id, month)
+      );
+
       CREATE INDEX IF NOT EXISTS idx_accounts_budget ON accounts(budget_id);
       CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
@@ -112,6 +124,7 @@ export class SqliteStore implements Store {
       CREATE INDEX IF NOT EXISTS idx_category_groups_budget ON category_groups(budget_id);
       CREATE INDEX IF NOT EXISTS idx_payees_budget ON payees(budget_id);
       CREATE INDEX IF NOT EXISTS idx_assignments_category_month ON assignments(category_id, month);
+      CREATE INDEX IF NOT EXISTS idx_month_summaries_budget_month ON month_summaries(budget_id, month);
     `)
   }
 
@@ -567,6 +580,27 @@ export class SqliteStore implements Store {
     }))
   }
 
+  listAllAssignmentsForBudget(budgetId: string): Assignment[] {
+    const rows = this.queryAll<{
+      id: string
+      category_id: string
+      month: string
+      amount: number
+    }>(
+      `SELECT a.* FROM assignments a
+       JOIN categories c ON a.category_id = c.id
+       JOIN category_groups g ON c.group_id = g.id
+       WHERE g.budget_id = ?`,
+      [budgetId]
+    )
+    return rows.map((r) => ({
+      id: r.id,
+      categoryId: r.category_id,
+      month: r.month,
+      amount: r.amount,
+    }))
+  }
+
   saveAssignment(assignment: Assignment): void {
     this.db.run(
       `INSERT OR REPLACE INTO assignments (id, category_id, month, amount) VALUES (?, ?, ?, ?)`,
@@ -577,6 +611,70 @@ export class SqliteStore implements Store {
   deleteAssignment(categoryId: string, month: string): void {
     this.db.run('DELETE FROM assignments WHERE category_id = ? AND month = ?', [
       categoryId,
+      month,
+    ])
+  }
+
+  // MonthSummary
+  getMonthSummary(budgetId: string, month: string): MonthSummary | null {
+    const row = this.queryOne<{
+      id: string
+      budget_id: string
+      month: string
+      closing_rta: number
+      category_balances: string
+      updated_at: string
+    }>('SELECT * FROM month_summaries WHERE budget_id = ? AND month = ?', [budgetId, month])
+    return row
+      ? {
+          id: row.id,
+          budgetId: row.budget_id,
+          month: row.month,
+          closingRTA: row.closing_rta,
+          categoryBalances: JSON.parse(row.category_balances),
+          updatedAt: row.updated_at,
+        }
+      : null
+  }
+
+  listMonthSummaries(budgetId: string): MonthSummary[] {
+    const rows = this.queryAll<{
+      id: string
+      budget_id: string
+      month: string
+      closing_rta: number
+      category_balances: string
+      updated_at: string
+    }>('SELECT * FROM month_summaries WHERE budget_id = ? ORDER BY month', [budgetId])
+    return rows.map((r) => ({
+      id: r.id,
+      budgetId: r.budget_id,
+      month: r.month,
+      closingRTA: r.closing_rta,
+      categoryBalances: JSON.parse(r.category_balances),
+      updatedAt: r.updated_at,
+    }))
+  }
+
+  saveMonthSummary(summary: MonthSummary): void {
+    this.db.run(
+      `INSERT OR REPLACE INTO month_summaries
+       (id, budget_id, month, closing_rta, category_balances, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        summary.id,
+        summary.budgetId,
+        summary.month,
+        summary.closingRTA,
+        JSON.stringify(summary.categoryBalances),
+        summary.updatedAt,
+      ]
+    )
+  }
+
+  deleteMonthSummary(budgetId: string, month: string): void {
+    this.db.run('DELETE FROM month_summaries WHERE budget_id = ? AND month = ?', [
+      budgetId,
       month,
     ])
   }

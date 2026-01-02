@@ -1,4 +1,5 @@
 import type { Store } from '../stores/types.ts'
+import { getMonthEnd } from '../schemas/month-summary.ts'
 
 /**
  * Account balance breakdown.
@@ -102,16 +103,6 @@ export function getCategoryBalances(
     activity,
     available,
   }
-}
-
-/**
- * Get the last day of a month in YYYY-MM-DD format.
- */
-function getMonthEnd(month: string): string {
-  const [year, monthNum] = month.split('-').map(Number)
-  // Create date for first day of next month, then subtract 1 day
-  const lastDay = new Date(year, monthNum, 0).getDate()
-  return `${month}-${String(lastDay).padStart(2, '0')}`
 }
 
 /**

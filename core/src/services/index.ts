@@ -21,3 +21,15 @@ export {
 
 // Assignment handling
 export { assignToCategory, moveBetweenCategories, clearCategoryAssignments } from './assignment.ts'
+
+// Month summary and carryover
+export type { MonthData } from './month-summary.ts'
+export {
+  calculateMonthSummary,
+  getOrCalculateMonthSummary,
+  recalculateFromMonth,
+  getMonthReadyToAssign,
+  getCategoryAvailableForMonth,
+  getMonthData,
+  getLastAssignmentsBeforeMonth,
+} from './month-summary.ts'
