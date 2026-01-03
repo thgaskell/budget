@@ -17,6 +17,24 @@ A command-line personal budget management tool using envelope-based budgeting (Y
 
 ## Installation
 
+### Prebuilt Binaries
+
+Download the latest release for your platform from the [Releases page](https://github.com/thgaskell/budget/releases).
+
+Available binaries:
+- `budget-linux-x64` - Linux (x86_64)
+- `budget-linux-arm64` - Linux (ARM64)
+- `budget-darwin-x64` - macOS (Intel)
+- `budget-darwin-arm64` - macOS (Apple Silicon)
+- `budget-windows-x64.exe` - Windows (x86_64)
+
+**macOS users:** Downloaded binaries are quarantined by Gatekeeper. Remove the quarantine attribute before running:
+
+```bash
+xattr -cr ./budget-darwin-arm64
+chmod +x ./budget-darwin-arm64
+```
+
 ### From Source
 
 ```bash
