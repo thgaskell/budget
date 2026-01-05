@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CLI
+
+#### Added
+
+- **Self-update Command** - `budget update` checks GitHub releases for newer versions
+  - Downloads and installs the latest binary for your platform
+  - `--check` flag to only check without installing
+  - `--force` flag to skip confirmation prompt
+  - Automatic backup and restore on failure
+  - Platform-aware binary selection (darwin/linux/windows, arm64/x64)
+
 ## [0.2.0] - 2026-01-02
 
 ## [0.2.0] - 2026-01-02
