@@ -11,6 +11,7 @@ import {
   registerAssignCommands,
   registerTargetCommands,
   registerUpdateCommands,
+  registerPayeeCommands,
 } from './commands/index.ts'
 import pkg from '../package.json'
 
@@ -39,6 +40,7 @@ registerGroupCommands(program)
 registerAssignCommands(program)
 registerTargetCommands(program)
 registerUpdateCommands(program)
+registerPayeeCommands(program)
 
 // Run CLI
 async function main() {
