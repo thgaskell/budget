@@ -283,6 +283,14 @@ export function registerTransactionCommands(program: Command): void {
               `Transfer: ${transferAccount?.name ?? transaction.transferAccountId}`
             )
           }
+          // Display timestamps if available (from core timestamps feature)
+          const txnWithTimestamps = transaction as { createdAt?: string; updatedAt?: string }
+          if (txnWithTimestamps.createdAt) {
+            console.log(`Created:  ${txnWithTimestamps.createdAt}`)
+          }
+          if (txnWithTimestamps.updatedAt) {
+            console.log(`Updated:  ${txnWithTimestamps.updatedAt}`)
+          }
         }
       } catch (error) {
         outputError(error as Error, options)

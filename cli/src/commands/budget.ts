@@ -136,6 +136,14 @@ export function registerBudgetCommands(program: Command): void {
           console.log(`ID:       ${budget.id}`)
           console.log(`Name:     ${budget.name}`)
           console.log(`Currency: ${budget.currency}`)
+          // Display timestamps if available (from core timestamps feature)
+          const budgetWithTimestamps = budget as { createdAt?: string; updatedAt?: string }
+          if (budgetWithTimestamps.createdAt) {
+            console.log(`Created:  ${budgetWithTimestamps.createdAt}`)
+          }
+          if (budgetWithTimestamps.updatedAt) {
+            console.log(`Updated:  ${budgetWithTimestamps.updatedAt}`)
+          }
         }
       } catch (error) {
         outputError(error as Error, options)
