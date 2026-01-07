@@ -20,6 +20,10 @@ export interface Target {
   amount: number
   /** Optional deadline (ISO date string) */
   targetDate: string | null
+  /** ISO date string when the target was created */
+  createdAt: string
+  /** ISO date string when the target was last updated */
+  updatedAt: string
 }
 
 /**
@@ -31,11 +35,14 @@ export function createTarget(params: {
   amount: number
   targetDate?: string | null
 }): Target {
+  const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
     categoryId: params.categoryId,
     type: params.type,
     amount: params.amount,
     targetDate: params.targetDate ?? null,
+    createdAt: now,
+    updatedAt: now,
   }
 }

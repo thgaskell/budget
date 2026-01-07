@@ -10,6 +10,10 @@ export interface CategoryGroup {
   name: string
   /** Display order */
   sortOrder: number
+  /** ISO date string when the category group was created */
+  createdAt: string
+  /** ISO date string when the category group was last updated */
+  updatedAt: string
 }
 
 /**
@@ -20,10 +24,13 @@ export function createCategoryGroup(params: {
   name: string
   sortOrder?: number
 }): CategoryGroup {
+  const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
     budgetId: params.budgetId,
     name: params.name,
     sortOrder: params.sortOrder ?? 0,
+    createdAt: now,
+    updatedAt: now,
   }
 }
