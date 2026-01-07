@@ -168,12 +168,16 @@ export class SqliteStore implements Store {
       'assignments',
     ]
 
+    const now = new Date().toISOString()
+
     for (const table of tables) {
       if (!hasColumn(table, 'created_at')) {
         this.db.run(`ALTER TABLE ${table} ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`)
+        this.db.run(`UPDATE ${table} SET created_at = ? WHERE created_at = ''`, [now])
       }
       if (!hasColumn(table, 'updated_at')) {
         this.db.run(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`)
+        this.db.run(`UPDATE ${table} SET updated_at = ? WHERE updated_at = ''`, [now])
       }
     }
   }
