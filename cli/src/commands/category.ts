@@ -130,32 +130,59 @@ export function registerCategoryCommands(program: Command): void {
       }
     })
 
-  // category delete <id>
+  // category delete <id|name>
   category
-    .command('delete <id>')
+    .command('delete <idOrName>')
     .description('Delete a category')
-    .option('--force', 'Skip confirmation')
-    .action(async (id: string, _opts: { force?: boolean }) => {
+    .option('--force', 'Skip confirmation and remove category from transactions')
+    .action(async (idOrName: string, opts: { force?: boolean }) => {
       const options = program.opts() as OutputOptions
       try {
         const budgetId = requireActiveBudgetId()
         const store = getStore()
+        const categories = store.listCategories(budgetId)
 
-        const cat = store.getCategory(id)
+        // Find by ID or name
+        let cat = categories.find((c) => c.id === idOrName)
         if (!cat) {
-          throw new Error(`Category not found: ${id}`)
+          cat = categories.find(
+            (c) => c.name.toLowerCase() === idOrName.toLowerCase()
+          )
         }
 
-        // Verify it belongs to active budget
-        const group = store.getCategoryGroup(cat.groupId)
-        if (group?.budgetId !== budgetId) {
-          throw new Error('Category does not belong to the active budget.')
+        if (!cat) {
+          throw new Error(`Category not found: ${idOrName}`)
         }
 
-        store.deleteCategory(id)
+        // Find transactions that reference this category
+        const allTransactions = store.listAllTransactions(budgetId)
+        const affectedTransactions = allTransactions.filter(
+          (txn) => txn.categoryId === cat!.id
+        )
+
+        if (affectedTransactions.length > 0 && !opts.force) {
+          throw new Error(
+            `Category has ${affectedTransactions.length} transaction(s). Use --force to remove category from transactions and delete.`
+          )
+        }
+
+        // Update transactions to remove category reference
+        for (const txn of affectedTransactions) {
+          store.saveTransaction({ ...txn, categoryId: null })
+        }
+
+        store.deleteCategory(cat.id)
         saveStore()
 
-        outputSuccess(`Deleted category: ${cat.name}`, options, { id })
+        if (affectedTransactions.length > 0) {
+          outputSuccess(
+            `Deleted category: ${cat.name} (removed from ${affectedTransactions.length} transaction(s))`,
+            options,
+            { id: cat.id, transactionsUpdated: affectedTransactions.length }
+          )
+        } else {
+          outputSuccess(`Deleted category: ${cat.name}`, options, { id: cat.id })
+        }
       } catch (error) {
         outputError(error as Error, options)
       }
