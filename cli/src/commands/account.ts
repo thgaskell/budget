@@ -158,6 +158,14 @@ export function registerAccountCommands(program: Command): void {
           console.log(`Name:       ${account.name}`)
           console.log(`Type:       ${account.type}`)
           console.log(`On Budget:  ${account.onBudget ? 'Yes' : 'No'}`)
+          // Display timestamps if available (from core timestamps feature)
+          const accountWithTimestamps = account as { createdAt?: string; updatedAt?: string }
+          if (accountWithTimestamps.createdAt) {
+            console.log(`Created:    ${accountWithTimestamps.createdAt}`)
+          }
+          if (accountWithTimestamps.updatedAt) {
+            console.log(`Updated:    ${accountWithTimestamps.updatedAt}`)
+          }
           console.log()
           console.log(colors.bold('Balances'))
           console.log(`Cleared:    ${formatAmountColored(balances.cleared, currency)}`)
