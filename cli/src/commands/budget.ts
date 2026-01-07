@@ -142,6 +142,52 @@ export function registerBudgetCommands(program: Command): void {
       }
     })
 
+  // budget edit
+  program
+    .command('edit')
+    .description('Edit the active budget')
+    .option('--name <new-name>', 'New budget name')
+    .option('--currency <new-currency>', 'New currency code')
+    .action(async (opts: { name?: string; currency?: string }) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const store = getStore()
+        const activeBudgetId = getActiveBudgetId()
+
+        if (!activeBudgetId) {
+          throw new Error(
+            'No active budget. Use "budget use <id|name>" to select a budget.'
+          )
+        }
+
+        const budget = store.getBudget(activeBudgetId)
+        if (!budget) {
+          clearActiveBudgetId()
+          throw new Error('Active budget no longer exists.')
+        }
+
+        if (!opts.name && !opts.currency) {
+          throw new Error(
+            'No changes specified. Use --name or --currency to update the budget.'
+          )
+        }
+
+        // Update budget fields
+        const updatedBudget = {
+          ...budget,
+          name: opts.name ?? budget.name,
+          currency: opts.currency ?? budget.currency,
+        }
+
+        store.saveBudget(updatedBudget)
+        saveStore()
+
+        outputSuccess(`Updated budget: ${updatedBudget.name}`, options, updatedBudget)
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
   // budget delete <id>
   program
     .command('delete <id>')
