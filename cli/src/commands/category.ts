@@ -244,6 +244,47 @@ export function registerGroupCommands(program: Command): void {
       }
     })
 
+  // group edit <id|name>
+  group
+    .command('edit <idOrName>')
+    .description('Edit a category group')
+    .option('--name <name>', 'New name for the group')
+    .action(async (idOrName: string, opts: { name?: string }) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        const categoryGroup = findCategoryGroup(store, budgetId, idOrName)
+        if (!categoryGroup) {
+          throw new Error(`Category group not found: ${idOrName}`)
+        }
+
+        if (categoryGroup.budgetId !== budgetId) {
+          throw new Error('Category group does not belong to the active budget.')
+        }
+
+        // Check if any updates were provided
+        if (opts.name === undefined) {
+          throw new Error('No updates provided. Use --name to update the group name.')
+        }
+
+        // Apply updates
+        const updated = { ...categoryGroup }
+
+        if (opts.name !== undefined) {
+          updated.name = opts.name
+        }
+
+        store.saveCategoryGroup(updated)
+        saveStore()
+
+        outputSuccess(`Updated category group: ${updated.name}`, options, updated)
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
   // group delete <id>
   group
     .command('delete <id>')
