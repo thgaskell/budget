@@ -66,3 +66,54 @@ Feature: Database Management
     When I run "budget show"
     Then the command should fail
     And the output should contain "No active budget"
+
+  # Database management commands
+  Scenario: Show database info
+    When I run "budget db info"
+    Then the command should succeed
+    And the output should contain "Database Information"
+    And the output should contain "Location"
+    And the output should contain "Schema Version"
+
+  Scenario: Show database info in JSON format
+    When I run "budget db info --json"
+    Then the command should succeed
+    And the output should be valid JSON
+    And the JSON should contain "path"
+    And the JSON should contain "schemaVersion"
+
+  Scenario: Database info shows table counts
+    Given a budget named "Info Test Budget" exists
+    When I run "budget db info"
+    Then the command should succeed
+    And the output should contain "Table Counts"
+    And the output should contain "budgets"
+
+  Scenario: Database reset requires confirmation
+    Given I am using a file-based store at "/tmp/reset-test.sqlite"
+    When I run "budget create 'Reset Test Budget'"
+    And I run "budget db reset"
+    Then the command should fail
+    And the output should contain "requires confirmation"
+
+  Scenario: Database reset with force flag
+    Given I am using a file-based store at "/tmp/force-reset-test.sqlite"
+    When I run "budget create 'Force Reset Test'"
+    And I run "budget db reset --force"
+    Then the command should succeed
+    And the output should contain "Deleted database"
+
+  Scenario: Database migrate when no database exists
+    Given I am using a file-based store at "/tmp/no-db-migrate.sqlite"
+    # Note: Creating an in-memory store means no file exists yet
+    When I run "budget db migrate"
+    Then the command should succeed
+
+  Scenario: Database migrate preserves existing data
+    Given I am using a file-based store at "/tmp/migrate-preserve.sqlite"
+    When I run "budget create 'Migrate Preserve Test'"
+    And I run "budget db migrate"
+    Then the command should succeed
+    And the output should contain "migrated successfully"
+    When I run "budget list"
+    Then the output should contain "Migrate Preserve Test"

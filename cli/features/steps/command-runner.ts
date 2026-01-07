@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import type { Store } from '@budget/core'
 import { SqliteStore } from '@budget/core'
-import { existsSync, writeFileSync } from 'fs'
+import { writeFileSync } from 'fs'
 import { setStore, saveStore } from '../../src/store.ts'
 import { getCurrentDbPath } from '../../src/config.ts'
 import {
@@ -12,6 +12,7 @@ import {
   registerGroupCommands,
   registerAssignCommands,
   registerTargetCommands,
+  registerDbCommands,
 } from '../../src/commands/index.ts'
 
 interface CommandResult {
@@ -108,6 +109,7 @@ export async function runCommand(command: string, store: Store): Promise<Command
     registerGroupCommands(program)
     registerAssignCommands(program)
     registerTargetCommands(program)
+    registerDbCommands(program)
 
     // Parse the command
     const args = parseCommandArgs(command)
