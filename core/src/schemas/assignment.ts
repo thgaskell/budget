@@ -11,6 +11,10 @@ export interface Assignment {
   month: string
   /** Amount assigned in cents */
   amount: number
+  /** ISO date string when the assignment was created */
+  createdAt: string
+  /** ISO date string when the assignment was last updated */
+  updatedAt: string
 }
 
 /**
@@ -21,11 +25,14 @@ export function createAssignment(params: {
   month: string
   amount: number
 }): Assignment {
+  const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
     categoryId: params.categoryId,
     month: params.month,
     amount: params.amount,
+    createdAt: now,
+    updatedAt: now,
   }
 }
 

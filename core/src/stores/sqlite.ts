@@ -37,7 +37,9 @@ export class SqliteStore implements Store {
       CREATE TABLE IF NOT EXISTS budgets (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        currency TEXT NOT NULL DEFAULT 'USD'
+        currency TEXT NOT NULL DEFAULT 'USD',
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT ''
       );
 
       CREATE TABLE IF NOT EXISTS accounts (
@@ -46,6 +48,8 @@ export class SqliteStore implements Store {
         name TEXT NOT NULL,
         type TEXT NOT NULL,
         on_budget INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (budget_id) REFERENCES budgets(id)
       );
 
@@ -54,6 +58,8 @@ export class SqliteStore implements Store {
         budget_id TEXT NOT NULL,
         name TEXT NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (budget_id) REFERENCES budgets(id)
       );
 
@@ -62,6 +68,8 @@ export class SqliteStore implements Store {
         group_id TEXT NOT NULL,
         name TEXT NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (group_id) REFERENCES category_groups(id)
       );
 
@@ -69,6 +77,8 @@ export class SqliteStore implements Store {
         id TEXT PRIMARY KEY,
         budget_id TEXT NOT NULL,
         name TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (budget_id) REFERENCES budgets(id)
       );
 
@@ -82,6 +92,8 @@ export class SqliteStore implements Store {
         cleared INTEGER NOT NULL DEFAULT 0,
         memo TEXT,
         transfer_account_id TEXT,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (account_id) REFERENCES accounts(id),
         FOREIGN KEY (category_id) REFERENCES categories(id),
         FOREIGN KEY (payee_id) REFERENCES payees(id),
@@ -94,6 +106,8 @@ export class SqliteStore implements Store {
         type TEXT NOT NULL,
         amount INTEGER NOT NULL,
         target_date TEXT,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (category_id) REFERENCES categories(id)
       );
 
@@ -102,6 +116,8 @@ export class SqliteStore implements Store {
         category_id TEXT NOT NULL,
         month TEXT NOT NULL,
         amount INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT '',
         FOREIGN KEY (category_id) REFERENCES categories(id),
         UNIQUE (category_id, month)
       );
@@ -126,6 +142,40 @@ export class SqliteStore implements Store {
       CREATE INDEX IF NOT EXISTS idx_assignments_category_month ON assignments(category_id, month);
       CREATE INDEX IF NOT EXISTS idx_month_summaries_budget_month ON month_summaries(budget_id, month);
     `)
+
+    // Add migration for existing databases without timestamp columns
+    this.migrateTimestamps()
+  }
+
+  private migrateTimestamps(): void {
+    // Helper to check if a column exists in a table
+    const hasColumn = (table: string, column: string): boolean => {
+      const result = this.queryOne<{ name: string }>(
+        `SELECT name FROM pragma_table_info('${table}') WHERE name = ?`,
+        [column]
+      )
+      return result !== null
+    }
+
+    const tables = [
+      'budgets',
+      'accounts',
+      'category_groups',
+      'categories',
+      'payees',
+      'transactions',
+      'targets',
+      'assignments',
+    ]
+
+    for (const table of tables) {
+      if (!hasColumn(table, 'created_at')) {
+        this.db.run(`ALTER TABLE ${table} ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`)
+      }
+      if (!hasColumn(table, 'updated_at')) {
+        this.db.run(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`)
+      }
+    }
   }
 
   /**
@@ -167,24 +217,45 @@ export class SqliteStore implements Store {
 
   // Budget
   getBudget(id: string): Budget | null {
-    const row = this.queryOne<{ id: string; name: string; currency: string }>(
-      'SELECT * FROM budgets WHERE id = ?',
-      [id]
-    )
-    return row ? { id: row.id, name: row.name, currency: row.currency } : null
+    const row = this.queryOne<{
+      id: string
+      name: string
+      currency: string
+      created_at: string
+      updated_at: string
+    }>('SELECT * FROM budgets WHERE id = ?', [id])
+    return row
+      ? {
+          id: row.id,
+          name: row.name,
+          currency: row.currency,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }
+      : null
   }
 
   listBudgets(): Budget[] {
-    const rows = this.queryAll<{ id: string; name: string; currency: string }>(
-      'SELECT * FROM budgets'
-    )
-    return rows.map((r) => ({ id: r.id, name: r.name, currency: r.currency }))
+    const rows = this.queryAll<{
+      id: string
+      name: string
+      currency: string
+      created_at: string
+      updated_at: string
+    }>('SELECT * FROM budgets')
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      currency: r.currency,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }))
   }
 
   saveBudget(budget: Budget): void {
     this.db.run(
-      `INSERT OR REPLACE INTO budgets (id, name, currency) VALUES (?, ?, ?)`,
-      [budget.id, budget.name, budget.currency]
+      `INSERT OR REPLACE INTO budgets (id, name, currency, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      [budget.id, budget.name, budget.currency, budget.createdAt, budget.updatedAt]
     )
   }
 
@@ -200,6 +271,8 @@ export class SqliteStore implements Store {
       name: string
       type: string
       on_budget: number
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM accounts WHERE id = ?', [id])
     return row
       ? {
@@ -208,6 +281,8 @@ export class SqliteStore implements Store {
           name: row.name,
           type: row.type as Account['type'],
           onBudget: row.on_budget === 1,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
@@ -219,6 +294,8 @@ export class SqliteStore implements Store {
       name: string
       type: string
       on_budget: number
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM accounts WHERE budget_id = ?', [budgetId])
     return rows.map((r) => ({
       id: r.id,
@@ -226,13 +303,23 @@ export class SqliteStore implements Store {
       name: r.name,
       type: r.type as Account['type'],
       onBudget: r.on_budget === 1,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
   saveAccount(account: Account): void {
     this.db.run(
-      `INSERT OR REPLACE INTO accounts (id, budget_id, name, type, on_budget) VALUES (?, ?, ?, ?, ?)`,
-      [account.id, account.budgetId, account.name, account.type, account.onBudget ? 1 : 0]
+      `INSERT OR REPLACE INTO accounts (id, budget_id, name, type, on_budget, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        account.id,
+        account.budgetId,
+        account.name,
+        account.type,
+        account.onBudget ? 1 : 0,
+        account.createdAt,
+        account.updatedAt,
+      ]
     )
   }
 
@@ -252,6 +339,8 @@ export class SqliteStore implements Store {
       cleared: number
       memo: string | null
       transfer_account_id: string | null
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM transactions WHERE id = ?', [id])
     return row
       ? {
@@ -264,6 +353,8 @@ export class SqliteStore implements Store {
           cleared: row.cleared === 1,
           memo: row.memo,
           transferAccountId: row.transfer_account_id,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
@@ -293,6 +384,8 @@ export class SqliteStore implements Store {
       cleared: number
       memo: string | null
       transfer_account_id: string | null
+      created_at: string
+      updated_at: string
     }>(query, params)
 
     return rows.map((r) => ({
@@ -305,6 +398,8 @@ export class SqliteStore implements Store {
       cleared: r.cleared === 1,
       memo: r.memo,
       transferAccountId: r.transfer_account_id,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
@@ -337,6 +432,8 @@ export class SqliteStore implements Store {
       cleared: number
       memo: string | null
       transfer_account_id: string | null
+      created_at: string
+      updated_at: string
     }>(query, params)
 
     return rows.map((r) => ({
@@ -349,14 +446,16 @@ export class SqliteStore implements Store {
       cleared: r.cleared === 1,
       memo: r.memo,
       transferAccountId: r.transfer_account_id,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
   saveTransaction(transaction: Transaction): void {
     this.db.run(
       `INSERT OR REPLACE INTO transactions
-       (id, account_id, category_id, payee_id, date, amount, cleared, memo, transfer_account_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, account_id, category_id, payee_id, date, amount, cleared, memo, transfer_account_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction.id,
         transaction.accountId,
@@ -367,6 +466,8 @@ export class SqliteStore implements Store {
         transaction.cleared ? 1 : 0,
         transaction.memo,
         transaction.transferAccountId,
+        transaction.createdAt,
+        transaction.updatedAt,
       ]
     )
   }
@@ -382,6 +483,8 @@ export class SqliteStore implements Store {
       group_id: string
       name: string
       sort_order: number
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM categories WHERE id = ?', [id])
     return row
       ? {
@@ -389,6 +492,8 @@ export class SqliteStore implements Store {
           groupId: row.group_id,
           name: row.name,
           sortOrder: row.sort_order,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
@@ -399,6 +504,8 @@ export class SqliteStore implements Store {
       group_id: string
       name: string
       sort_order: number
+      created_at: string
+      updated_at: string
     }>(
       `SELECT c.* FROM categories c
        JOIN category_groups g ON c.group_id = g.id
@@ -411,13 +518,22 @@ export class SqliteStore implements Store {
       groupId: r.group_id,
       name: r.name,
       sortOrder: r.sort_order,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
   saveCategory(category: Category): void {
     this.db.run(
-      `INSERT OR REPLACE INTO categories (id, group_id, name, sort_order) VALUES (?, ?, ?, ?)`,
-      [category.id, category.groupId, category.name, category.sortOrder]
+      `INSERT OR REPLACE INTO categories (id, group_id, name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        category.id,
+        category.groupId,
+        category.name,
+        category.sortOrder,
+        category.createdAt,
+        category.updatedAt,
+      ]
     )
   }
 
@@ -432,6 +548,8 @@ export class SqliteStore implements Store {
       budget_id: string
       name: string
       sort_order: number
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM category_groups WHERE id = ?', [id])
     return row
       ? {
@@ -439,6 +557,8 @@ export class SqliteStore implements Store {
           budgetId: row.budget_id,
           name: row.name,
           sortOrder: row.sort_order,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
@@ -449,19 +569,23 @@ export class SqliteStore implements Store {
       budget_id: string
       name: string
       sort_order: number
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM category_groups WHERE budget_id = ? ORDER BY sort_order', [budgetId])
     return rows.map((r) => ({
       id: r.id,
       budgetId: r.budget_id,
       name: r.name,
       sortOrder: r.sort_order,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
   saveCategoryGroup(group: CategoryGroup): void {
     this.db.run(
-      `INSERT OR REPLACE INTO category_groups (id, budget_id, name, sort_order) VALUES (?, ?, ?, ?)`,
-      [group.id, group.budgetId, group.name, group.sortOrder]
+      `INSERT OR REPLACE INTO category_groups (id, budget_id, name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [group.id, group.budgetId, group.name, group.sortOrder, group.createdAt, group.updatedAt]
     )
   }
 
@@ -475,12 +599,16 @@ export class SqliteStore implements Store {
       id: string
       budget_id: string
       name: string
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM payees WHERE id = ?', [id])
     return row
       ? {
           id: row.id,
           budgetId: row.budget_id,
           name: row.name,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
@@ -490,20 +618,23 @@ export class SqliteStore implements Store {
       id: string
       budget_id: string
       name: string
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM payees WHERE budget_id = ?', [budgetId])
     return rows.map((r) => ({
       id: r.id,
       budgetId: r.budget_id,
       name: r.name,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
   savePayee(payee: Payee): void {
-    this.db.run(`INSERT OR REPLACE INTO payees (id, budget_id, name) VALUES (?, ?, ?)`, [
-      payee.id,
-      payee.budgetId,
-      payee.name,
-    ])
+    this.db.run(
+      `INSERT OR REPLACE INTO payees (id, budget_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      [payee.id, payee.budgetId, payee.name, payee.createdAt, payee.updatedAt]
+    )
   }
 
   deletePayee(id: string): void {
@@ -518,6 +649,8 @@ export class SqliteStore implements Store {
       type: string
       amount: number
       target_date: string | null
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM targets WHERE category_id = ?', [categoryId])
     return row
       ? {
@@ -526,14 +659,24 @@ export class SqliteStore implements Store {
           type: row.type as Target['type'],
           amount: row.amount,
           targetDate: row.target_date,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
 
   saveTarget(target: Target): void {
     this.db.run(
-      `INSERT OR REPLACE INTO targets (id, category_id, type, amount, target_date) VALUES (?, ?, ?, ?, ?)`,
-      [target.id, target.categoryId, target.type, target.amount, target.targetDate]
+      `INSERT OR REPLACE INTO targets (id, category_id, type, amount, target_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        target.id,
+        target.categoryId,
+        target.type,
+        target.amount,
+        target.targetDate,
+        target.createdAt,
+        target.updatedAt,
+      ]
     )
   }
 
@@ -548,6 +691,8 @@ export class SqliteStore implements Store {
       category_id: string
       month: string
       amount: number
+      created_at: string
+      updated_at: string
     }>('SELECT * FROM assignments WHERE category_id = ? AND month = ?', [categoryId, month])
     return row
       ? {
@@ -555,6 +700,8 @@ export class SqliteStore implements Store {
           categoryId: row.category_id,
           month: row.month,
           amount: row.amount,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         }
       : null
   }
@@ -565,6 +712,8 @@ export class SqliteStore implements Store {
       category_id: string
       month: string
       amount: number
+      created_at: string
+      updated_at: string
     }>(
       `SELECT a.* FROM assignments a
        JOIN categories c ON a.category_id = c.id
@@ -577,6 +726,8 @@ export class SqliteStore implements Store {
       categoryId: r.category_id,
       month: r.month,
       amount: r.amount,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
@@ -586,6 +737,8 @@ export class SqliteStore implements Store {
       category_id: string
       month: string
       amount: number
+      created_at: string
+      updated_at: string
     }>(
       `SELECT a.* FROM assignments a
        JOIN categories c ON a.category_id = c.id
@@ -598,13 +751,22 @@ export class SqliteStore implements Store {
       categoryId: r.category_id,
       month: r.month,
       amount: r.amount,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }))
   }
 
   saveAssignment(assignment: Assignment): void {
     this.db.run(
-      `INSERT OR REPLACE INTO assignments (id, category_id, month, amount) VALUES (?, ?, ?, ?)`,
-      [assignment.id, assignment.categoryId, assignment.month, assignment.amount]
+      `INSERT OR REPLACE INTO assignments (id, category_id, month, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        assignment.id,
+        assignment.categoryId,
+        assignment.month,
+        assignment.amount,
+        assignment.createdAt,
+        assignment.updatedAt,
+      ]
     )
   }
 

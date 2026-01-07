@@ -22,6 +22,10 @@ export interface Transaction {
   memo: string | null
   /** For transfers: the linked account ID */
   transferAccountId: string | null
+  /** ISO date string when the transaction was created */
+  createdAt: string
+  /** ISO date string when the transaction was last updated */
+  updatedAt: string
 }
 
 /**
@@ -37,6 +41,7 @@ export function createTransaction(params: {
   memo?: string | null
   transferAccountId?: string | null
 }): Transaction {
+  const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
     accountId: params.accountId,
@@ -47,6 +52,8 @@ export function createTransaction(params: {
     cleared: params.cleared ?? false,
     memo: params.memo ?? null,
     transferAccountId: params.transferAccountId ?? null,
+    createdAt: now,
+    updatedAt: now,
   }
 }
 

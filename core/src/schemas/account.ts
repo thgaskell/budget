@@ -19,6 +19,10 @@ export interface Account {
   type: AccountType
   /** Whether dollars contribute to assignable pool */
   onBudget: boolean
+  /** ISO date string when the account was created */
+  createdAt: string
+  /** ISO date string when the account was last updated */
+  updatedAt: string
 }
 
 /**
@@ -31,11 +35,14 @@ export function createAccount(params: {
   type: AccountType
   onBudget?: boolean
 }): Account {
+  const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
     budgetId: params.budgetId,
     name: params.name,
     type: params.type,
     onBudget: params.onBudget ?? params.type !== 'tracking',
+    createdAt: now,
+    updatedAt: now,
   }
 }

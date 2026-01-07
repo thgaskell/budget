@@ -11,6 +11,10 @@ export interface Category {
   name: string
   /** Display order within group */
   sortOrder: number
+  /** ISO date string when the category was created */
+  createdAt: string
+  /** ISO date string when the category was last updated */
+  updatedAt: string
 }
 
 /**
@@ -21,10 +25,13 @@ export function createCategory(params: {
   name: string
   sortOrder?: number
 }): Category {
+  const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
     groupId: params.groupId,
     name: params.name,
     sortOrder: params.sortOrder ?? 0,
+    createdAt: now,
+    updatedAt: now,
   }
 }
