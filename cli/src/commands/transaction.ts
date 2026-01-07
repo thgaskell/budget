@@ -67,9 +67,9 @@ export function registerTransactionCommands(program: Command): void {
   tx
     .command('add')
     .description('Add a new transaction')
-    .requiredOption('--account <id|name>', 'Account ID or name')
-    .requiredOption('--amount <amount>', 'Amount (negative for outflow)')
-    .requiredOption('--payee <name>', 'Payee name')
+    .requiredOption('--account <id|name>', '(required) Account ID or name')
+    .requiredOption('--amount <amount>', '(required) Amount (negative for outflow)')
+    .requiredOption('--payee <name>', '(required) Payee name')
     .option('--category <id|name>', 'Category ID or name')
     .option('--date <date>', 'Transaction date (default: today)')
     .option('--memo <text>', 'Transaction memo')

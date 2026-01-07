@@ -91,7 +91,7 @@ export function registerTargetCommands(program: Command): void {
   target
     .command('set <category>')
     .description('Set a target for a category')
-    .requiredOption('--amount <amount>', 'Target amount')
+    .requiredOption('--amount <amount>', '(required) Target amount')
     .option(
       '--type <type>',
       'Target type: spending, savings, monthly (default: spending)',

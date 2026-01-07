@@ -41,7 +41,7 @@ export function registerCategoryCommands(program: Command): void {
   category
     .command('add <name>')
     .description('Create a new category')
-    .requiredOption('--group <id|name>', 'Category group ID or name')
+    .requiredOption('--group <id|name>', '(required) Category group ID or name')
     .action(async (name: string, opts: { group: string }) => {
       const options = program.opts() as OutputOptions
       try {

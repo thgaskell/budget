@@ -29,7 +29,7 @@ export function registerAccountCommands(program: Command): void {
   account
     .command('add <name>')
     .description('Create a new account')
-    .requiredOption('--type <type>', `Account type: ${ACCOUNT_TYPES.join(', ')}`)
+    .requiredOption('--type <type>', `(required) Account type: ${ACCOUNT_TYPES.join(', ')}`)
     .option('--off-budget', 'Create as tracking (off-budget) account')
     .action(async (name: string, opts: { type: string; offBudget?: boolean }) => {
       const options = program.opts() as OutputOptions
