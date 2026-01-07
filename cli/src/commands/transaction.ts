@@ -301,9 +301,11 @@ export function registerTransactionCommands(program: Command): void {
   tx
     .command('edit <id>')
     .description('Edit a transaction')
+    .option('--account <id|name>', 'New account')
     .option('--amount <amount>', 'New amount')
     .option('--payee <name>', 'New payee')
     .option('--category <id|name>', 'New category')
+    .option('--date <date>', 'New date')
     .option('--memo <text>', 'New memo')
     .option('--cleared', 'Mark as cleared')
     .option('--no-cleared', 'Mark as uncleared')
@@ -311,9 +313,11 @@ export function registerTransactionCommands(program: Command): void {
       async (
         id: string,
         opts: {
+          account?: string
           amount?: string
           payee?: string
           category?: string
+          date?: string
           memo?: string
           cleared?: boolean
         }
@@ -336,6 +340,14 @@ export function registerTransactionCommands(program: Command): void {
           // Apply updates
           const updated = { ...transaction }
 
+          if (opts.account !== undefined) {
+            const newAccount = findAccount(store, budgetId, opts.account)
+            if (!newAccount) {
+              throw new Error(`Account not found: ${opts.account}`)
+            }
+            updated.accountId = newAccount.id
+          }
+
           if (opts.amount !== undefined) {
             updated.amount = parseAmount(opts.amount)
           }
@@ -351,6 +363,10 @@ export function registerTransactionCommands(program: Command): void {
               throw new Error(`Category not found: ${opts.category}`)
             }
             updated.categoryId = category.id
+          }
+
+          if (opts.date !== undefined) {
+            updated.date = parseDate(opts.date)
           }
 
           if (opts.memo !== undefined) {
