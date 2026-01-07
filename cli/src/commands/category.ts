@@ -244,6 +244,59 @@ export function registerGroupCommands(program: Command): void {
       }
     })
 
+  // group show <id|name>
+  group
+    .command('show <idOrName>')
+    .description('Show category group details')
+    .action(async (idOrName: string) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        // Find group by ID or name
+        const categoryGroup = findCategoryGroup(store, budgetId, idOrName)
+        if (!categoryGroup) {
+          throw new Error(`Category group not found: ${idOrName}`)
+        }
+
+        // Get categories in this group
+        const categories = store
+          .listCategories(budgetId)
+          .filter((c) => c.groupId === categoryGroup.id)
+
+        if (options.json) {
+          console.log(
+            JSON.stringify({ ...categoryGroup, categories }, null, 2)
+          )
+        } else if (options.quiet) {
+          console.log(categoryGroup.id)
+        } else {
+          console.log(colors.bold('Category Group Details'))
+          console.log(`ID:         ${categoryGroup.id}`)
+          console.log(`Name:       ${categoryGroup.name}`)
+          console.log(`Sort Order: ${categoryGroup.sortOrder}`)
+          console.log()
+          console.log(colors.bold(`Categories (${categories.length})`))
+          if (categories.length === 0) {
+            console.log(colors.dim('  (no categories)'))
+          } else {
+            outputTable(
+              ['ID', 'Name', 'Sort Order'],
+              categories.map((cat) => [
+                cat.id.substring(0, 8) + '...',
+                cat.name,
+                cat.sortOrder,
+              ]),
+              options
+            )
+          }
+        }
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
   // group delete <id>
   group
     .command('delete <id>')
