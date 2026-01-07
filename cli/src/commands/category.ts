@@ -2,14 +2,17 @@ import { Command } from 'commander'
 import {
   createCategory,
   createCategoryGroup,
+  getCategoryBalances,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
 import { requireActiveBudgetId } from '../config.ts'
+import { getCurrentMonth } from '../utils/parse-date.ts'
 import {
   outputSuccess,
   outputError,
   outputTable,
   colors,
+  formatAmountColored,
   type OutputOptions,
 } from '../output.ts'
 
@@ -27,6 +30,24 @@ function findCategoryGroup(
     group = groups.find((g) => g.name.toLowerCase() === idOrName.toLowerCase())
   }
   return group
+}
+
+/**
+ * Find a category by ID or name within the active budget.
+ */
+function findCategory(
+  store: ReturnType<typeof getStore>,
+  budgetId: string,
+  idOrName: string
+) {
+  const categories = store.listCategories(budgetId)
+  let category = categories.find((c) => c.id === idOrName)
+  if (!category) {
+    category = categories.find(
+      (c) => c.name.toLowerCase() === idOrName.toLowerCase()
+    )
+  }
+  return category
 }
 
 /**
@@ -130,7 +151,73 @@ export function registerCategoryCommands(program: Command): void {
       }
     })
 
+<<<<<<< HEAD
   // category delete <id|name>
+=======
+  // category show <id|name>
+  category
+    .command('show <idOrName>')
+    .description('Show category details')
+    .option('--month <month>', 'Month in YYYY-MM format (default: current)')
+    .action(async (idOrName: string, opts: { month?: string }) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        // Find category by ID or name
+        const cat = findCategory(store, budgetId, idOrName)
+        if (!cat) {
+          throw new Error(`Category not found: ${idOrName}`)
+        }
+
+        // Get the category group
+        const group = store.getCategoryGroup(cat.groupId)
+        if (!group) {
+          throw new Error(`Category group not found for category: ${cat.name}`)
+        }
+
+        // Get budget and currency
+        const budget = store.getBudget(budgetId)
+        const currency = budget?.currency ?? 'USD'
+
+        // Get month and balances
+        const month = opts.month ?? getCurrentMonth()
+        const balances = getCategoryBalances(store, cat.id, month)
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                category: cat,
+                group: { id: group.id, name: group.name },
+                month,
+                balances,
+              },
+              null,
+              2
+            )
+          )
+        } else if (options.quiet) {
+          console.log(cat.id)
+        } else {
+          console.log(colors.bold('Category Details'))
+          console.log(`ID:         ${cat.id}`)
+          console.log(`Name:       ${cat.name}`)
+          console.log(`Group:      ${group.name}`)
+          console.log()
+          console.log(colors.bold(`Balances (${month})`))
+          console.log(`Assigned:   ${formatAmountColored(balances.assigned, currency)}`)
+          console.log(`Activity:   ${formatAmountColored(balances.activity, currency)}`)
+          console.log(`Available:  ${formatAmountColored(balances.available, currency)}`)
+        }
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
+  // category delete <id>
+>>>>>>> feat/category-show
   category
     .command('delete <idOrName>')
     .description('Delete a category')
