@@ -5,6 +5,7 @@ import {
   getReadyToAssign,
   getCategoryBalances,
   formatCurrency,
+  type Assignment,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
 import { requireActiveBudgetId } from '../config.ts'
@@ -75,6 +76,131 @@ export function registerAssignCommands(program: Command): void {
           `Assigned ${formatCurrency(amount, currency)} to ${category.name} for ${month}`,
           options,
           assignment
+        )
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
+  // budget assign-list [--month YYYY-MM]
+  program
+    .command('assign-list')
+    .description('List all assignments for a month')
+    .option('--month <month>', 'Month in YYYY-MM format (default: current)')
+    .action(async (opts: { month?: string }) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        const month = opts.month ?? getCurrentMonth()
+        const budget = store.getBudget(budgetId)
+        const currency = budget?.currency ?? 'USD'
+
+        const assignments = store.listAssignments(budgetId, month)
+        const categories = store.listCategories(budgetId)
+        const groups = store.listCategoryGroups(budgetId)
+
+        // Build lookup maps
+        const categoryMap = new Map(categories.map((c) => [c.id, c]))
+        const groupMap = new Map(groups.map((g) => [g.id, g]))
+
+        // Enrich assignments with category and group names
+        const enrichedAssignments = assignments
+          .map((a: Assignment) => {
+            const category = categoryMap.get(a.categoryId)
+            const group = category ? groupMap.get(category.groupId) : null
+            return {
+              ...a,
+              categoryName: category?.name ?? 'Unknown',
+              groupName: group?.name ?? 'Unknown',
+            }
+          })
+          .filter((a) => a.amount !== 0) // Only show non-zero assignments
+          .sort((a, b) => {
+            // Sort by group name, then category name
+            const groupCompare = a.groupName.localeCompare(b.groupName)
+            if (groupCompare !== 0) return groupCompare
+            return a.categoryName.localeCompare(b.categoryName)
+          })
+
+        if (options.json) {
+          console.log(JSON.stringify({ month, assignments: enrichedAssignments }, null, 2))
+        } else if (options.quiet) {
+          for (const a of enrichedAssignments) {
+            console.log(`${a.categoryId}\t${a.amount}`)
+          }
+        } else {
+          if (enrichedAssignments.length === 0) {
+            console.log(colors.dim(`No assignments for ${month}.`))
+            return
+          }
+
+          console.log(colors.bold(`Assignments for ${month}`))
+          console.log()
+
+          outputTable(
+            ['Category', 'Group', 'Assigned'],
+            enrichedAssignments.map((a) => [
+              a.categoryName,
+              a.groupName,
+              formatAmountColored(a.amount, currency),
+            ]),
+            { ...options, json: false, quiet: false }
+          )
+
+          // Show total
+          const total = enrichedAssignments.reduce((sum, a) => sum + a.amount, 0)
+          console.log()
+          console.log(`Total assigned: ${formatAmountColored(total, currency)}`)
+        }
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
+  // budget assign-clear <category> [--month YYYY-MM]
+  program
+    .command('assign-clear <category>')
+    .description('Clear (zero out) an assignment for a category')
+    .option('--month <month>', 'Month in YYYY-MM format (default: current)')
+    .action(async (categoryArg: string, opts: { month?: string }) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        // Find category
+        const category = findCategory(store, budgetId, categoryArg)
+        if (!category) {
+          throw new Error(`Category not found: ${categoryArg}`)
+        }
+
+        const month = opts.month ?? getCurrentMonth()
+        const budget = store.getBudget(budgetId)
+        const currency = budget?.currency ?? 'USD'
+
+        // Get current assignment to show what was cleared
+        const existing = store.getAssignment(category.id, month)
+        const previousAmount = existing?.amount ?? 0
+
+        if (previousAmount === 0) {
+          if (options.json) {
+            console.log(JSON.stringify({ message: 'No assignment to clear', category: category.name, month }, null, 2))
+          } else if (!options.quiet) {
+            console.log(colors.dim(`No assignment to clear for ${category.name} in ${month}.`))
+          }
+          return
+        }
+
+        // Delete the assignment
+        store.deleteAssignment(category.id, month)
+        saveStore()
+
+        outputSuccess(
+          `Cleared ${formatCurrency(previousAmount, currency)} assignment from ${category.name} for ${month}`,
+          options,
+          { categoryId: category.id, categoryName: category.name, month, clearedAmount: previousAmount }
         )
       } catch (error) {
         outputError(error as Error, options)
