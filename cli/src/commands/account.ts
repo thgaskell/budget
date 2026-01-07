@@ -191,6 +191,60 @@ export function registerAccountCommands(program: Command): void {
       }
     })
 
+  // account edit <id|name>
+  account
+    .command('edit <idOrName>')
+    .description('Edit an existing account')
+    .option('--name <name>', 'New account name')
+    .option('--type <type>', `New account type: ${ACCOUNT_TYPES.join(', ')}`)
+    .action(async (idOrName: string, opts: { name?: string; type?: string }) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+        const accounts = store.listAccounts(budgetId)
+
+        // Find by ID or name
+        let account = accounts.find((a) => a.id === idOrName)
+        if (!account) {
+          account = accounts.find(
+            (a) => a.name.toLowerCase() === idOrName.toLowerCase()
+          )
+        }
+
+        if (!account) {
+          throw new Error(`Account not found: ${idOrName}`)
+        }
+
+        if (!opts.name && !opts.type) {
+          throw new Error('At least one of --name or --type must be provided')
+        }
+
+        // Validate type if provided
+        if (opts.type) {
+          const accountType = opts.type.toLowerCase() as AccountType
+          if (!ACCOUNT_TYPES.includes(accountType)) {
+            throw new Error(
+              `Invalid account type: ${opts.type}. Valid types: ${ACCOUNT_TYPES.join(', ')}`
+            )
+          }
+          account = { ...account, type: accountType }
+        }
+
+        // Update name if provided
+        if (opts.name) {
+          account = { ...account, name: opts.name }
+        }
+
+        store.saveAccount(account)
+        saveStore()
+
+        outputSuccess(`Updated account: ${account.name}`, options, account)
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
   // account delete <id>
   account
     .command('delete <id>')
