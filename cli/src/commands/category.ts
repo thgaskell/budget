@@ -99,6 +99,72 @@ export function registerCategoryCommands(program: Command): void {
       }
     })
 
+
+  // category edit <id|name>
+  category
+    .command('edit <id|name>')
+    .description('Edit a category')
+    .option('--name <new-name>', 'New category name')
+    .option('--group <new-group>', 'New category group (ID or name)')
+    .action(
+      async (
+        idOrName: string,
+        opts: {
+          name?: string
+          group?: string
+        }
+      ) => {
+        const options = program.opts() as OutputOptions
+        try {
+          const budgetId = requireActiveBudgetId()
+          const store = getStore()
+
+          const cat = findCategory(store, budgetId, idOrName)
+          if (!cat) {
+            throw new Error(`Category not found: ${idOrName}`)
+          }
+
+          // Verify it belongs to active budget
+          const currentGroup = store.getCategoryGroup(cat.groupId)
+          if (currentGroup?.budgetId !== budgetId) {
+            throw new Error('Category does not belong to the active budget.')
+          }
+
+          // Check that at least one option is provided
+          if (opts.name === undefined && opts.group === undefined) {
+            throw new Error('At least one of --name or --group must be provided.')
+          }
+
+          // Apply updates
+          const updated = { ...cat }
+
+          if (opts.name !== undefined) {
+            updated.name = opts.name
+          }
+
+          if (opts.group !== undefined) {
+            const newGroup = findCategoryGroup(store, budgetId, opts.group)
+            if (!newGroup) {
+              throw new Error(`Category group not found: ${opts.group}`)
+            }
+            updated.groupId = newGroup.id
+          }
+
+          store.saveCategory(updated)
+          saveStore()
+
+          const finalGroup = store.getCategoryGroup(updated.groupId)
+          outputSuccess(
+            `Updated category: ${updated.name} in ${finalGroup?.name}`,
+            options,
+            updated
+          )
+        } catch (error) {
+          outputError(error as Error, options)
+        }
+      }
+    )
+
   // category list
   category
     .command('list')
@@ -151,9 +217,6 @@ export function registerCategoryCommands(program: Command): void {
       }
     })
 
-<<<<<<< HEAD
-  // category delete <id|name>
-=======
   // category show <id|name>
   category
     .command('show <idOrName>')
@@ -216,8 +279,7 @@ export function registerCategoryCommands(program: Command): void {
       }
     })
 
-  // category delete <id>
->>>>>>> feat/category-show
+  // category delete <id|name>
   category
     .command('delete <idOrName>')
     .description('Delete a category')
