@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0-rc.1] - 2026-02-01
+
 ### Changed
 
 - Per-package release workflow with independent changelogs
