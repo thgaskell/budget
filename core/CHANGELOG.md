@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Per-package release workflow with independent changelogs
+
 ## [0.2.0] - 2026-01-02
 
 ### Added
