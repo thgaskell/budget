@@ -12,7 +12,11 @@ import { getReadyToAssign } from '../../src/services/ready-to-assign.ts'
 
 describe.each([
   ['MemoryStore', async () => new MemoryStore()],
-  ['SqliteStore', async () => await SqliteStore.create()],
+  ['SqliteStore', async () => {
+    const store = await SqliteStore.create()
+    store.migrate()
+    return store
+  }],
 ])('Ready to Assign with %s', (_, createStore) => {
   let store: Store
 

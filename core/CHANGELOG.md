@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Database Migrations** - TypeScript migration system with zod validation
+  - Sequential version validation (no gaps allowed)
+  - Atomic transactions (all-or-nothing per migrate call)
+  - Transaction logging with `MigrationLogEntry` for debugging
+  - Staged migrations with `{ to: version }` option
+- **Portable JSON Export** - `toJSON()`/`fromJSON()` on Store interface for cross-platform data transfer (CLI ↔ Webapp)
+- **Schema Version Tracking** - `getSchemaVersion()` on all stores
+- **Manual Migration Control** - `SqliteStore.createUnmigrated()` for explicit migration handling
+- **Migration Utilities** - `runMigrations()`, `getPendingMigrations()`, `getLatestVersion()`, `validateMigrations()`
+
 ## [0.2.0] - 2026-01-02
 
 ### Added

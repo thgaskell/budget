@@ -15,7 +15,11 @@ import {
 
 describe.each([
   ['MemoryStore', async () => new MemoryStore()],
-  ['SqliteStore', async () => await SqliteStore.create()],
+  ['SqliteStore', async () => {
+    const store = await SqliteStore.create()
+    store.migrate()
+    return store
+  }],
 ])('Transaction Service with %s', (_, createStore) => {
   let store: Store
   let budget: ReturnType<typeof createBudget>

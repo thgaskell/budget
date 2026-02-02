@@ -14,6 +14,7 @@ describe('SqliteStore', () => {
 
   beforeEach(async () => {
     store = await SqliteStore.create()
+    store.migrate() // Initialize schema
   })
 
   afterEach(() => {

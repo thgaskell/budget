@@ -19,10 +19,42 @@ export interface TransactionQueryOptions {
 }
 
 /**
+ * Portable export format for store data.
+ * Used for cross-platform transfer (CLI ↔ Webapp).
+ */
+export interface StoreExportData {
+  /** Export format version */
+  version: string
+  /** Schema version of the exported data */
+  schemaVersion: number
+  /** ISO timestamp when exported */
+  exportedAt: string
+  /** All data organized by budget */
+  budgets: Array<{
+    budget: Budget
+    accounts: Account[]
+    categoryGroups: CategoryGroup[]
+    categories: Category[]
+    payees: Payee[]
+    transactions: Transaction[]
+    targets: Target[]
+    assignments: Assignment[]
+    monthSummaries: MonthSummary[]
+  }>
+}
+
+/**
  * Store interface - abstract data persistence layer.
  * All business logic operates through this interface.
  */
 export interface Store {
+  // Schema Version - all stores must track their schema version
+  getSchemaVersion(): number
+
+  // Export/Import - portable JSON format for cross-platform transfer
+  toJSON(): StoreExportData
+  fromJSON(data: StoreExportData): void
+
   // Budget
   getBudget(id: string): Budget | null
   listBudgets(): Budget[]

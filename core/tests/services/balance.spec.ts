@@ -12,7 +12,11 @@ import { getAccountBalances, getCategoryBalances } from '../../src/services/bala
 
 describe.each([
   ['MemoryStore', async () => new MemoryStore()],
-  ['SqliteStore', async () => await SqliteStore.create()],
+  ['SqliteStore', async () => {
+    const store = await SqliteStore.create()
+    store.migrate()
+    return store
+  }],
 ])('Balance Service with %s', (_, createStore) => {
   let store: Store
 

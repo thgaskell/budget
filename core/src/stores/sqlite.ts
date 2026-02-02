@@ -8,124 +8,168 @@ import type { MonthSummary } from '../schemas/month-summary.ts'
 import type { Payee } from '../schemas/payee.ts'
 import type { Target } from '../schemas/target.ts'
 import type { Transaction } from '../schemas/transaction.ts'
-import type { Store, TransactionQueryOptions } from './types.ts'
+import type { Store, TransactionQueryOptions, StoreExportData } from './types.ts'
+import {
+  migrations,
+  runMigrations,
+  getCurrentVersion,
+  getLatestVersion,
+  getPendingMigrations,
+  getAppliedVersions,
+} from '../migrations/index.ts'
+import type { Migration, SchemaVersion, MigrationResult, MigrationOptions } from '../migrations/index.ts'
 
 /**
  * SQLite store implementation using sql.js.
  * Persisted - data survives process restarts.
+ *
+ * Schema version behavior:
+ * - New database (v0): Auto-migrates to latest version
+ * - Current version (v == latest): Ready to use
+ * - Older version (v < latest): Throws error - call migrate() explicitly
+ * - Future version (v > latest): Throws error - update the library
  */
 export class SqliteStore implements Store {
   private db: Database
 
   private constructor(db: Database) {
     this.db = db
-    this.initSchema()
   }
 
   /**
    * Create a new SqliteStore instance.
    * Must be called with await due to async initialization.
+   *
+   * Schema version handling:
+   * - New database: Auto-migrates to latest
+   * - Existing at latest: Ready to use
+   * - Existing older: Throws - must call migrate() explicitly after handling
+   * - Existing newer: Throws - data from future version
+   *
+   * @throws Error if schema version requires migration or is from future
    */
   static async create(data?: ArrayLike<number>): Promise<SqliteStore> {
+    const SQL = await initSqlJs()
+    const db = data ? new SQL.Database(data) : new SQL.Database()
+    const store = new SqliteStore(db)
+
+    const currentVersion = store.getSchemaVersion()
+    const latestVersion = store.getLatestSchemaVersion()
+
+    // New database: auto-migrate
+    if (currentVersion === 0) {
+      store.migrate()
+      return store
+    }
+
+    // Future version: reject
+    if (currentVersion > latestVersion) {
+      store.close()
+      throw new Error(
+        `Cannot load database with schema version ${currentVersion}. ` +
+        `This library only supports up to version ${latestVersion}. ` +
+        `Please update to a newer version of the library.`
+      )
+    }
+
+    // Older version: reject (developer must handle migration explicitly)
+    if (currentVersion < latestVersion) {
+      store.close()
+      throw new Error(
+        `Database schema version ${currentVersion} is outdated. ` +
+        `Latest version is ${latestVersion}. ` +
+        `Use SqliteStore.createUnmigrated() to load and then call migrate().`
+      )
+    }
+
+    // Current version: ready to use
+    return store
+  }
+
+  /**
+   * Create a SqliteStore without version validation.
+   * Use this when you need to handle migration manually.
+   *
+   * @example
+   * ```typescript
+   * const store = await SqliteStore.createUnmigrated(oldData)
+   * if (store.needsMigration()) {
+   *   // Prompt user, backup, etc.
+   *   store.migrate()
+   * }
+   * ```
+   */
+  static async createUnmigrated(data?: ArrayLike<number>): Promise<SqliteStore> {
     const SQL = await initSqlJs()
     const db = data ? new SQL.Database(data) : new SQL.Database()
     return new SqliteStore(db)
   }
 
-  private initSchema(): void {
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS budgets (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        currency TEXT NOT NULL DEFAULT 'USD'
-      );
+  /**
+   * Run pending migrations on the database.
+   * Returns a result with the number of migrations applied.
+   *
+   * This is the only way to apply schema changes. Migrations are atomic -
+   * either all migrations in the batch succeed, or none are applied.
+   *
+   * @param options - Optional migration options
+   * @param options.to - Target version to migrate to (defaults to latest)
+   *
+   * @example
+   * ```typescript
+   * // Migrate to latest version
+   * store.migrate()
+   *
+   * // Migrate only to version 2
+   * store.migrate({ to: 2 })
+   *
+   * // Staged migration with intermediate work
+   * store.migrate({ to: 3 })
+   * // ... do data preparation ...
+   * store.migrate({ to: 5 })
+   * // ... more preparation ...
+   * store.migrate() // finish to latest
+   * ```
+   */
+  migrate(options?: MigrationOptions): MigrationResult {
+    return runMigrations(this.db, migrations, options)
+  }
 
-      CREATE TABLE IF NOT EXISTS accounts (
-        id TEXT PRIMARY KEY,
-        budget_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        on_budget INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY (budget_id) REFERENCES budgets(id)
-      );
+  /**
+   * Check if the database needs migration.
+   * Returns true if there are pending migrations to apply.
+   */
+  needsMigration(): boolean {
+    return getPendingMigrations(this.db, migrations).length > 0
+  }
 
-      CREATE TABLE IF NOT EXISTS category_groups (
-        id TEXT PRIMARY KEY,
-        budget_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (budget_id) REFERENCES budgets(id)
-      );
+  /**
+   * Get the current schema version of the database.
+   * Returns 0 if no migrations have been applied (new database).
+   */
+  getSchemaVersion(): number {
+    return getCurrentVersion(this.db)
+  }
 
-      CREATE TABLE IF NOT EXISTS categories (
-        id TEXT PRIMARY KEY,
-        group_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (group_id) REFERENCES category_groups(id)
-      );
+  /**
+   * Get the latest available schema version.
+   */
+  getLatestSchemaVersion(): number {
+    return getLatestVersion(migrations)
+  }
 
-      CREATE TABLE IF NOT EXISTS payees (
-        id TEXT PRIMARY KEY,
-        budget_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        FOREIGN KEY (budget_id) REFERENCES budgets(id)
-      );
+  /**
+   * Get all pending migrations that need to be applied.
+   */
+  getPendingMigrations(): Migration[] {
+    return getPendingMigrations(this.db, migrations)
+  }
 
-      CREATE TABLE IF NOT EXISTS transactions (
-        id TEXT PRIMARY KEY,
-        account_id TEXT NOT NULL,
-        category_id TEXT,
-        payee_id TEXT,
-        date TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        cleared INTEGER NOT NULL DEFAULT 0,
-        memo TEXT,
-        transfer_account_id TEXT,
-        FOREIGN KEY (account_id) REFERENCES accounts(id),
-        FOREIGN KEY (category_id) REFERENCES categories(id),
-        FOREIGN KEY (payee_id) REFERENCES payees(id),
-        FOREIGN KEY (transfer_account_id) REFERENCES accounts(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS targets (
-        id TEXT PRIMARY KEY,
-        category_id TEXT NOT NULL UNIQUE,
-        type TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        target_date TEXT,
-        FOREIGN KEY (category_id) REFERENCES categories(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS assignments (
-        id TEXT PRIMARY KEY,
-        category_id TEXT NOT NULL,
-        month TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        FOREIGN KEY (category_id) REFERENCES categories(id),
-        UNIQUE (category_id, month)
-      );
-
-      CREATE TABLE IF NOT EXISTS month_summaries (
-        id TEXT PRIMARY KEY,
-        budget_id TEXT NOT NULL,
-        month TEXT NOT NULL,
-        closing_rta INTEGER NOT NULL,
-        category_balances TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY (budget_id) REFERENCES budgets(id),
-        UNIQUE (budget_id, month)
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_accounts_budget ON accounts(budget_id);
-      CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
-      CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
-      CREATE INDEX IF NOT EXISTS idx_categories_group ON categories(group_id);
-      CREATE INDEX IF NOT EXISTS idx_category_groups_budget ON category_groups(budget_id);
-      CREATE INDEX IF NOT EXISTS idx_payees_budget ON payees(budget_id);
-      CREATE INDEX IF NOT EXISTS idx_assignments_category_month ON assignments(category_id, month);
-      CREATE INDEX IF NOT EXISTS idx_month_summaries_budget_month ON month_summaries(budget_id, month);
-    `)
+  /**
+   * Get all applied schema versions.
+   */
+  getAppliedVersions(): SchemaVersion[] {
+    return getAppliedVersions(this.db)
   }
 
   /**
@@ -140,6 +184,131 @@ export class SqliteStore implements Store {
    */
   close(): void {
     this.db.close()
+  }
+
+  /**
+   * Export store data as portable JSON format.
+   * Used for cross-platform transfer (CLI ↔ Webapp).
+   */
+  toJSON(): StoreExportData {
+    const budgets = this.listBudgets()
+
+    return {
+      version: '1.0',
+      schemaVersion: this.getSchemaVersion(),
+      exportedAt: new Date().toISOString(),
+      budgets: budgets.map((budget) => {
+        const categoryGroups = this.listCategoryGroups(budget.id)
+        const categories = this.listCategories(budget.id)
+        const accounts = this.listAccounts(budget.id)
+
+        // Collect all transactions across all accounts
+        const transactions: ReturnType<typeof this.listTransactions> = []
+        for (const account of accounts) {
+          transactions.push(...this.listTransactions(account.id))
+        }
+
+        // Collect all targets for categories
+        const targets: ReturnType<typeof this.getTarget>[] = []
+        for (const category of categories) {
+          const target = this.getTarget(category.id)
+          if (target) targets.push(target)
+        }
+
+        return {
+          budget,
+          accounts,
+          categoryGroups,
+          categories,
+          payees: this.listPayees(budget.id),
+          transactions,
+          targets: targets.filter((t): t is NonNullable<typeof t> => t !== null),
+          assignments: this.listAllAssignmentsForBudget(budget.id),
+          monthSummaries: this.listMonthSummaries(budget.id),
+        }
+      }),
+    }
+  }
+
+  /**
+   * Import data from portable JSON format.
+   * Replaces all existing data in the store.
+   *
+   * @throws Error if schemaVersion doesn't match current version
+   */
+  fromJSON(data: StoreExportData): void {
+    const currentVersion = this.getSchemaVersion()
+    if (data.schemaVersion !== currentVersion) {
+      throw new Error(
+        `Cannot import data with schema version ${data.schemaVersion}. ` +
+        `Store is at version ${currentVersion}. ` +
+        `Migrate the data first.`
+      )
+    }
+
+    // Clear existing data (in reverse dependency order)
+    for (const budget of this.listBudgets()) {
+      // Delete month summaries
+      for (const summary of this.listMonthSummaries(budget.id)) {
+        this.deleteMonthSummary(budget.id, summary.month)
+      }
+      // Delete assignments
+      for (const assignment of this.listAllAssignmentsForBudget(budget.id)) {
+        this.deleteAssignment(assignment.categoryId, assignment.month)
+      }
+      // Delete targets and categories
+      for (const category of this.listCategories(budget.id)) {
+        this.deleteTarget(category.id)
+        this.deleteCategory(category.id)
+      }
+      // Delete category groups
+      for (const group of this.listCategoryGroups(budget.id)) {
+        this.deleteCategoryGroup(group.id)
+      }
+      // Delete transactions and accounts
+      for (const account of this.listAccounts(budget.id)) {
+        for (const txn of this.listTransactions(account.id)) {
+          this.deleteTransaction(txn.id)
+        }
+        this.deleteAccount(account.id)
+      }
+      // Delete payees
+      for (const payee of this.listPayees(budget.id)) {
+        this.deletePayee(payee.id)
+      }
+      // Delete budget
+      this.deleteBudget(budget.id)
+    }
+
+    // Import new data
+    for (const budgetData of data.budgets) {
+      this.saveBudget(budgetData.budget)
+
+      for (const account of budgetData.accounts) {
+        this.saveAccount(account)
+      }
+      for (const group of budgetData.categoryGroups) {
+        this.saveCategoryGroup(group)
+      }
+      for (const category of budgetData.categories) {
+        this.saveCategory(category)
+      }
+      for (const payee of budgetData.payees) {
+        this.savePayee(payee)
+      }
+      for (const transaction of budgetData.transactions) {
+        this.saveTransaction(transaction)
+      }
+      for (const target of budgetData.targets) {
+        this.saveTarget(target)
+      }
+      for (const assignment of budgetData.assignments) {
+        this.saveAssignment(assignment)
+      }
+      for (const summary of budgetData.monthSummaries) {
+        this.saveMonthSummary(summary)
+      }
+    }
   }
 
   private queryOne<T>(sql: string, params: SqlValue[] = []): T | null {

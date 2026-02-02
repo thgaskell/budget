@@ -7,7 +7,8 @@ import type { MonthSummary } from '../schemas/month-summary.ts'
 import type { Payee } from '../schemas/payee.ts'
 import type { Target } from '../schemas/target.ts'
 import type { Transaction } from '../schemas/transaction.ts'
-import type { Store, TransactionQueryOptions } from './types.ts'
+import type { Store, TransactionQueryOptions, StoreExportData } from './types.ts'
+import { migrations, getLatestVersion } from '../migrations/index.ts'
 
 /**
  * In-memory store implementation.
@@ -16,6 +17,113 @@ import type { Store, TransactionQueryOptions } from './types.ts'
  */
 export class MemoryStore implements Store {
   private budgets = new Map<string, Budget>()
+
+  /**
+   * Get the current schema version.
+   * MemoryStore always uses the latest schema version.
+   */
+  getSchemaVersion(): number {
+    return getLatestVersion(migrations)
+  }
+
+  /**
+   * Export store data as portable JSON format.
+   */
+  toJSON(): StoreExportData {
+    const budgets = this.listBudgets()
+
+    return {
+      version: '1.0',
+      schemaVersion: this.getSchemaVersion(),
+      exportedAt: new Date().toISOString(),
+      budgets: budgets.map((budget) => {
+        const categoryGroups = this.listCategoryGroups(budget.id)
+        const categories = this.listCategories(budget.id)
+        const accounts = this.listAccounts(budget.id)
+
+        const transactions: Transaction[] = []
+        for (const account of accounts) {
+          transactions.push(...this.listTransactions(account.id))
+        }
+
+        const targets: Target[] = []
+        for (const category of categories) {
+          const target = this.getTarget(category.id)
+          if (target) targets.push(target)
+        }
+
+        return {
+          budget,
+          accounts,
+          categoryGroups,
+          categories,
+          payees: this.listPayees(budget.id),
+          transactions,
+          targets,
+          assignments: this.listAllAssignmentsForBudget(budget.id),
+          monthSummaries: this.listMonthSummaries(budget.id),
+        }
+      }),
+    }
+  }
+
+  /**
+   * Import data from portable JSON format.
+   * Replaces all existing data in the store.
+   *
+   * @throws Error if schemaVersion doesn't match current version
+   */
+  fromJSON(data: StoreExportData): void {
+    const currentVersion = this.getSchemaVersion()
+    if (data.schemaVersion !== currentVersion) {
+      throw new Error(
+        `Cannot import data with schema version ${data.schemaVersion}. ` +
+        `Store is at version ${currentVersion}. ` +
+        `Migrate the data first.`
+      )
+    }
+
+    // Clear existing data
+    this.budgets.clear()
+    this.accounts.clear()
+    this.transactions.clear()
+    this.categories.clear()
+    this.categoryGroups.clear()
+    this.payees.clear()
+    this.targets.clear()
+    this.assignments.clear()
+    this.monthSummaries.clear()
+
+    // Import new data
+    for (const budgetData of data.budgets) {
+      this.saveBudget(budgetData.budget)
+      for (const account of budgetData.accounts) {
+        this.saveAccount(account)
+      }
+      for (const group of budgetData.categoryGroups) {
+        this.saveCategoryGroup(group)
+      }
+      for (const category of budgetData.categories) {
+        this.saveCategory(category)
+      }
+      for (const payee of budgetData.payees) {
+        this.savePayee(payee)
+      }
+      for (const transaction of budgetData.transactions) {
+        this.saveTransaction(transaction)
+      }
+      for (const target of budgetData.targets) {
+        this.saveTarget(target)
+      }
+      for (const assignment of budgetData.assignments) {
+        this.saveAssignment(assignment)
+      }
+      for (const summary of budgetData.monthSummaries) {
+        this.saveMonthSummary(summary)
+      }
+    }
+  }
+
   private accounts = new Map<string, Account>()
   private transactions = new Map<string, Transaction>()
   private categories = new Map<string, Category>()
