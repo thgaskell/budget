@@ -1,307 +1,313 @@
 {
   "version": "1.0",
+  "schemaVersion": 1,
   "exportedAt": "2026-01-02T19:36:54.118Z",
-  "budget": {
-    "id": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-    "name": "Budget",
-    "currency": "USD"
-  },
-  "accounts": [
+  "budgets": [
     {
-      "id": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Cash",
-      "type": "cash",
-      "onBudget": true
+      "budget": {
+        "id": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+        "name": "Budget",
+        "currency": "USD"
+      },
+      "accounts": [
+        {
+          "id": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Cash",
+          "type": "cash",
+          "onBudget": true
+        }
+      ],
+      "categoryGroups": [
+        {
+          "id": "a408acba-31ed-4e31-a488-f664fd0dd872",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Fixed Expenses",
+          "sortOrder": 0
+        },
+        {
+          "id": "e4ed8672-dd73-4d65-a443-b88675090788",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Variable Expenses",
+          "sortOrder": 1
+        },
+        {
+          "id": "93d2fa03-6f15-44cd-b964-54f82397a23e",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Savings Goals",
+          "sortOrder": 2
+        }
+      ],
+      "categories": [
+        {
+          "id": "ba3c77a6-d61f-46f3-a00b-435ebaceeadf",
+          "groupId": "a408acba-31ed-4e31-a488-f664fd0dd872",
+          "name": "Rent",
+          "sortOrder": 0
+        },
+        {
+          "id": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
+          "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
+          "name": "Groceries",
+          "sortOrder": 0
+        },
+        {
+          "id": "2c449651-6b95-4c7e-9473-c8415fd89d52",
+          "groupId": "93d2fa03-6f15-44cd-b964-54f82397a23e",
+          "name": "Emergency Fund",
+          "sortOrder": 0
+        },
+        {
+          "id": "01fee373-a829-4656-a8ce-12e31f5c459e",
+          "groupId": "a408acba-31ed-4e31-a488-f664fd0dd872",
+          "name": "Insurance",
+          "sortOrder": 1
+        },
+        {
+          "id": "a18fb0cb-bfd9-463b-951c-b288fb386e10",
+          "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
+          "name": "Dining Out",
+          "sortOrder": 1
+        },
+        {
+          "id": "0c9212ec-4b85-4d2d-a077-69f5cf769ccb",
+          "groupId": "93d2fa03-6f15-44cd-b964-54f82397a23e",
+          "name": "Vacation",
+          "sortOrder": 1
+        },
+        {
+          "id": "1bc33406-e1d8-47c4-a927-2d423d01209f",
+          "groupId": "a408acba-31ed-4e31-a488-f664fd0dd872",
+          "name": "Phone",
+          "sortOrder": 2
+        },
+        {
+          "id": "3b4e7996-2bf1-4089-a8da-7d70975ff04a",
+          "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
+          "name": "Gas",
+          "sortOrder": 2
+        },
+        {
+          "id": "68555b9b-4e4e-4c6e-8498-651504876d02",
+          "groupId": "93d2fa03-6f15-44cd-b964-54f82397a23e",
+          "name": "New Car",
+          "sortOrder": 2
+        },
+        {
+          "id": "fe37e028-0758-46a8-a6d7-adb1e3dea78f",
+          "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
+          "name": "Entertainment",
+          "sortOrder": 3
+        }
+      ],
+      "payees": [
+        {
+          "id": "40a91533-8c28-49b5-a3bc-92bf994b48dc",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Employer"
+        },
+        {
+          "id": "cd036b63-7250-4a07-bac4-e9be9bed041b",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Landlord"
+        },
+        {
+          "id": "d5b04fa0-6a2a-4694-b06a-25c12ae28238",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "State Farm"
+        },
+        {
+          "id": "b90696d8-0203-45ef-818e-17c6e99d48cb",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Verizon"
+        },
+        {
+          "id": "1c235a38-5ce3-4cb2-beca-44a14d8b8300",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Kroger"
+        },
+        {
+          "id": "545b53e5-ee7b-485f-b44b-20c3a44bd8a5",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Walmart"
+        },
+        {
+          "id": "e8091bc6-5672-4c15-bb03-179a7cea6400",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Olive Garden"
+        },
+        {
+          "id": "bec54dc8-073d-4ab6-a21e-7ab1cc7a3ff8",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Shell"
+        },
+        {
+          "id": "13a1278e-f197-43b8-a1a0-b0477c9af3c0",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "BP"
+        },
+        {
+          "id": "7ae7a932-0238-4210-8f3c-b25c59662e03",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Netflix"
+        },
+        {
+          "id": "3220a657-bc28-4ddd-9265-f31c8efe3a3d",
+          "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
+          "name": "Spotify"
+        }
+      ],
+      "transactions": [
+        {
+          "id": "25914d04-ca98-4896-b3e1-b93495b9f3cb",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": null,
+          "payeeId": "40a91533-8c28-49b5-a3bc-92bf994b48dc",
+          "date": "2026-01-01",
+          "amount": 500000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "6801f5bf-ab6c-4b12-a400-8af9d53a5397",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "ba3c77a6-d61f-46f3-a00b-435ebaceeadf",
+          "payeeId": "cd036b63-7250-4a07-bac4-e9be9bed041b",
+          "date": "2026-01-01",
+          "amount": -150000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "b4f5f81b-0a51-43ce-ab1b-0d8fbdc0521b",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "fe37e028-0758-46a8-a6d7-adb1e3dea78f",
+          "payeeId": "7ae7a932-0238-4210-8f3c-b25c59662e03",
+          "date": "2026-01-01",
+          "amount": -1599,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "a67e0fc1-dc74-490d-9639-e2fd1e445237",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "fe37e028-0758-46a8-a6d7-adb1e3dea78f",
+          "payeeId": "3220a657-bc28-4ddd-9265-f31c8efe3a3d",
+          "date": "2026-01-01",
+          "amount": -999,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "e273e9b8-731b-404e-9860-7465a6a5af28",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
+          "payeeId": "1c235a38-5ce3-4cb2-beca-44a14d8b8300",
+          "date": "2026-01-02",
+          "amount": -12500,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "f3bb8821-7401-486b-bccf-2656c66e4a36",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "3b4e7996-2bf1-4089-a8da-7d70975ff04a",
+          "payeeId": "bec54dc8-073d-4ab6-a21e-7ab1cc7a3ff8",
+          "date": "2026-01-03",
+          "amount": -5500,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "7e4d4993-48da-4831-8980-c37d51a05d73",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "01fee373-a829-4656-a8ce-12e31f5c459e",
+          "payeeId": "d5b04fa0-6a2a-4694-b06a-25c12ae28238",
+          "date": "2026-01-05",
+          "amount": -15000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "2347303f-44d0-4a97-ba8b-091d9dbb6288",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "a18fb0cb-bfd9-463b-951c-b288fb386e10",
+          "payeeId": "e8091bc6-5672-4c15-bb03-179a7cea6400",
+          "date": "2026-01-05",
+          "amount": -4500,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "1de886c4-35c7-4209-949a-fe26c7a39eef",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
+          "payeeId": "545b53e5-ee7b-485f-b44b-20c3a44bd8a5",
+          "date": "2026-01-08",
+          "amount": -9850,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "f99d3a67-bc27-4f06-b0cb-e5edab4f8875",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "1bc33406-e1d8-47c4-a927-2d423d01209f",
+          "payeeId": "b90696d8-0203-45ef-818e-17c6e99d48cb",
+          "date": "2026-01-10",
+          "amount": -8500,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        },
+        {
+          "id": "47400cc7-27ae-4e97-8721-8d94ff7ae69b",
+          "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
+          "categoryId": "3b4e7996-2bf1-4089-a8da-7d70975ff04a",
+          "payeeId": "13a1278e-f197-43b8-a1a0-b0477c9af3c0",
+          "date": "2026-01-12",
+          "amount": -4800,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null
+        }
+      ],
+      "targets": [],
+      "assignments": [
+        {
+          "id": "2389be08-a021-417a-bffc-01177198844a",
+          "categoryId": "ba3c77a6-d61f-46f3-a00b-435ebaceeadf",
+          "month": "2026-01",
+          "amount": 150000
+        },
+        {
+          "id": "d3ea4150-088f-46fe-aee1-d042baf20eaf",
+          "categoryId": "01fee373-a829-4656-a8ce-12e31f5c459e",
+          "month": "2026-01",
+          "amount": 15000
+        },
+        {
+          "id": "4cb3c462-dc87-413f-a6be-366b348fa044",
+          "categoryId": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
+          "month": "2026-01",
+          "amount": 30000
+        },
+        {
+          "id": "8cddb303-0b29-4b8b-bf30-a7bcb32e955d",
+          "categoryId": "2c449651-6b95-4c7e-9473-c8415fd89d52",
+          "month": "2026-01",
+          "amount": 50000
+        }
+      ],
+      "monthSummaries": []
     }
-  ],
-  "categoryGroups": [
-    {
-      "id": "a408acba-31ed-4e31-a488-f664fd0dd872",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Fixed Expenses",
-      "sortOrder": 0
-    },
-    {
-      "id": "e4ed8672-dd73-4d65-a443-b88675090788",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Variable Expenses",
-      "sortOrder": 1
-    },
-    {
-      "id": "93d2fa03-6f15-44cd-b964-54f82397a23e",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Savings Goals",
-      "sortOrder": 2
-    }
-  ],
-  "categories": [
-    {
-      "id": "ba3c77a6-d61f-46f3-a00b-435ebaceeadf",
-      "groupId": "a408acba-31ed-4e31-a488-f664fd0dd872",
-      "name": "Rent",
-      "sortOrder": 0
-    },
-    {
-      "id": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
-      "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
-      "name": "Groceries",
-      "sortOrder": 0
-    },
-    {
-      "id": "2c449651-6b95-4c7e-9473-c8415fd89d52",
-      "groupId": "93d2fa03-6f15-44cd-b964-54f82397a23e",
-      "name": "Emergency Fund",
-      "sortOrder": 0
-    },
-    {
-      "id": "01fee373-a829-4656-a8ce-12e31f5c459e",
-      "groupId": "a408acba-31ed-4e31-a488-f664fd0dd872",
-      "name": "Insurance",
-      "sortOrder": 1
-    },
-    {
-      "id": "a18fb0cb-bfd9-463b-951c-b288fb386e10",
-      "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
-      "name": "Dining Out",
-      "sortOrder": 1
-    },
-    {
-      "id": "0c9212ec-4b85-4d2d-a077-69f5cf769ccb",
-      "groupId": "93d2fa03-6f15-44cd-b964-54f82397a23e",
-      "name": "Vacation",
-      "sortOrder": 1
-    },
-    {
-      "id": "1bc33406-e1d8-47c4-a927-2d423d01209f",
-      "groupId": "a408acba-31ed-4e31-a488-f664fd0dd872",
-      "name": "Phone",
-      "sortOrder": 2
-    },
-    {
-      "id": "3b4e7996-2bf1-4089-a8da-7d70975ff04a",
-      "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
-      "name": "Gas",
-      "sortOrder": 2
-    },
-    {
-      "id": "68555b9b-4e4e-4c6e-8498-651504876d02",
-      "groupId": "93d2fa03-6f15-44cd-b964-54f82397a23e",
-      "name": "New Car",
-      "sortOrder": 2
-    },
-    {
-      "id": "fe37e028-0758-46a8-a6d7-adb1e3dea78f",
-      "groupId": "e4ed8672-dd73-4d65-a443-b88675090788",
-      "name": "Entertainment",
-      "sortOrder": 3
-    }
-  ],
-  "transactions": [
-    {
-      "id": "25914d04-ca98-4896-b3e1-b93495b9f3cb",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": null,
-      "payeeId": "40a91533-8c28-49b5-a3bc-92bf994b48dc",
-      "date": "2026-01-01",
-      "amount": 500000,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "6801f5bf-ab6c-4b12-a400-8af9d53a5397",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "ba3c77a6-d61f-46f3-a00b-435ebaceeadf",
-      "payeeId": "cd036b63-7250-4a07-bac4-e9be9bed041b",
-      "date": "2026-01-01",
-      "amount": -150000,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "b4f5f81b-0a51-43ce-ab1b-0d8fbdc0521b",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "fe37e028-0758-46a8-a6d7-adb1e3dea78f",
-      "payeeId": "7ae7a932-0238-4210-8f3c-b25c59662e03",
-      "date": "2026-01-01",
-      "amount": -1599,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "a67e0fc1-dc74-490d-9639-e2fd1e445237",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "fe37e028-0758-46a8-a6d7-adb1e3dea78f",
-      "payeeId": "3220a657-bc28-4ddd-9265-f31c8efe3a3d",
-      "date": "2026-01-01",
-      "amount": -999,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "e273e9b8-731b-404e-9860-7465a6a5af28",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
-      "payeeId": "1c235a38-5ce3-4cb2-beca-44a14d8b8300",
-      "date": "2026-01-02",
-      "amount": -12500,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "f3bb8821-7401-486b-bccf-2656c66e4a36",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "3b4e7996-2bf1-4089-a8da-7d70975ff04a",
-      "payeeId": "bec54dc8-073d-4ab6-a21e-7ab1cc7a3ff8",
-      "date": "2026-01-03",
-      "amount": -5500,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "7e4d4993-48da-4831-8980-c37d51a05d73",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "01fee373-a829-4656-a8ce-12e31f5c459e",
-      "payeeId": "d5b04fa0-6a2a-4694-b06a-25c12ae28238",
-      "date": "2026-01-05",
-      "amount": -15000,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "2347303f-44d0-4a97-ba8b-091d9dbb6288",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "a18fb0cb-bfd9-463b-951c-b288fb386e10",
-      "payeeId": "e8091bc6-5672-4c15-bb03-179a7cea6400",
-      "date": "2026-01-05",
-      "amount": -4500,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "1de886c4-35c7-4209-949a-fe26c7a39eef",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
-      "payeeId": "545b53e5-ee7b-485f-b44b-20c3a44bd8a5",
-      "date": "2026-01-08",
-      "amount": -9850,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "f99d3a67-bc27-4f06-b0cb-e5edab4f8875",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "1bc33406-e1d8-47c4-a927-2d423d01209f",
-      "payeeId": "b90696d8-0203-45ef-818e-17c6e99d48cb",
-      "date": "2026-01-10",
-      "amount": -8500,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    },
-    {
-      "id": "47400cc7-27ae-4e97-8721-8d94ff7ae69b",
-      "accountId": "fee9368a-1f55-4b05-ab04-a6b0ed2fdfdd",
-      "categoryId": "3b4e7996-2bf1-4089-a8da-7d70975ff04a",
-      "payeeId": "13a1278e-f197-43b8-a1a0-b0477c9af3c0",
-      "date": "2026-01-12",
-      "amount": -4800,
-      "cleared": false,
-      "memo": null,
-      "transferAccountId": null
-    }
-  ],
-  "payees": [
-    {
-      "id": "40a91533-8c28-49b5-a3bc-92bf994b48dc",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Employer"
-    },
-    {
-      "id": "cd036b63-7250-4a07-bac4-e9be9bed041b",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Landlord"
-    },
-    {
-      "id": "d5b04fa0-6a2a-4694-b06a-25c12ae28238",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "State Farm"
-    },
-    {
-      "id": "b90696d8-0203-45ef-818e-17c6e99d48cb",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Verizon"
-    },
-    {
-      "id": "1c235a38-5ce3-4cb2-beca-44a14d8b8300",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Kroger"
-    },
-    {
-      "id": "545b53e5-ee7b-485f-b44b-20c3a44bd8a5",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Walmart"
-    },
-    {
-      "id": "e8091bc6-5672-4c15-bb03-179a7cea6400",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Olive Garden"
-    },
-    {
-      "id": "bec54dc8-073d-4ab6-a21e-7ab1cc7a3ff8",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Shell"
-    },
-    {
-      "id": "13a1278e-f197-43b8-a1a0-b0477c9af3c0",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "BP"
-    },
-    {
-      "id": "7ae7a932-0238-4210-8f3c-b25c59662e03",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Netflix"
-    },
-    {
-      "id": "3220a657-bc28-4ddd-9265-f31c8efe3a3d",
-      "budgetId": "7360b61e-4b51-479e-82ab-213eb4f686ca",
-      "name": "Spotify"
-    }
-  ],
-  "assignments": [
-    {
-      "id": "2389be08-a021-417a-bffc-01177198844a",
-      "categoryId": "ba3c77a6-d61f-46f3-a00b-435ebaceeadf",
-      "month": "2026-01",
-      "amount": 150000
-    },
-    {
-      "id": "d3ea4150-088f-46fe-aee1-d042baf20eaf",
-      "categoryId": "01fee373-a829-4656-a8ce-12e31f5c459e",
-      "month": "2026-01",
-      "amount": 15000
-    },
-    {
-      "id": "4cb3c462-dc87-413f-a6be-366b348fa044",
-      "categoryId": "3f6ea899-7778-469b-bceb-6a8a0f694dbf",
-      "month": "2026-01",
-      "amount": 30000
-    },
-    {
-      "id": "8cddb303-0b29-4b8b-bf30-a7bcb32e955d",
-      "categoryId": "2c449651-6b95-4c7e-9473-c8415fd89d52",
-      "month": "2026-01",
-      "amount": 50000
-    }
-  ],
-  "targets": []
+  ]
 }
