@@ -172,19 +172,30 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     if (!budget) return
 
     // Reload budget in case name or other properties changed
-    const updatedBudget = store.getBudget(budget.id)
-    if (updatedBudget && updatedBudget.name !== budget.name) {
-      setBudget(updatedBudget)
+    // Also handles the case where budget was replaced by import (different ID)
+    let activeBudget = store.getBudget(budget.id)
+    if (!activeBudget) {
+      // Budget no longer exists (e.g., after import) - switch to first available
+      const budgets = store.listBudgets()
+      if (budgets.length > 0) {
+        activeBudget = budgets[0]
+        setBudget(activeBudget)
+        return // Will re-run with new budget
+      }
+      return
+    }
+    if (activeBudget.name !== budget.name) {
+      setBudget(activeBudget)
     }
 
-    setAccounts(store.listAccounts(budget.id))
-    setCategoryGroups(store.listCategoryGroups(budget.id))
-    setCategories(store.listCategories(budget.id))
-    setAllTransactions(store.listAllTransactions(budget.id))
-    setPayees(store.listPayees(budget.id))
-    setAssignments(store.listAssignments(budget.id, selectedMonth))
+    setAccounts(store.listAccounts(activeBudget.id))
+    setCategoryGroups(store.listCategoryGroups(activeBudget.id))
+    setCategories(store.listCategories(activeBudget.id))
+    setAllTransactions(store.listAllTransactions(activeBudget.id))
+    setPayees(store.listPayees(activeBudget.id))
+    setAssignments(store.listAssignments(activeBudget.id, selectedMonth))
     // Get the last known assignment for each category before this month
-    const lastAssignments = getLastAssignmentsBeforeMonth(store, budget.id, selectedMonth)
+    const lastAssignments = getLastAssignmentsBeforeMonth(store, activeBudget.id, selectedMonth)
     setPreviousMonthAssignments(Array.from(lastAssignments.values()))
   }, [store, budget, selectedMonth, refreshKey])
 

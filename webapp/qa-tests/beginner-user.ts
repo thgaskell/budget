@@ -9,8 +9,12 @@
 import { chromium, type Browser, type Page } from 'playwright'
 import * as fs from 'fs'
 import * as path from 'path'
+import { fileURLToPath } from 'url'
 
-const BASE_URL = 'http://localhost:5175'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const BASE_URL = 'http://localhost:5173'
 const SCREENSHOT_DIR = path.join(__dirname, '..', 'qa-screenshots', 'beginner')
 
 // Test results storage
