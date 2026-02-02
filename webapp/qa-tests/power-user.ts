@@ -8,13 +8,43 @@
 import { chromium, Browser, Page, Download } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const BASE_URL = 'http://localhost:5173';
-const SCREENSHOT_DIR = path.join(__dirname, '..', 'qa-screenshots', 'power-user');
+const SCREENSHOT_DIR = path.join(__dirname, '..', 'qa-screenshots', 'intermediate')
+
+// ============================================================================
+// DATE HELPERS - Use relative dates so tests work regardless of when they run
+// ============================================================================
+function getRelativeDate(monthOffset: number, day: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() + monthOffset);
+  date.setDate(day);
+  return date.toISOString().split('T')[0];
+}
+
+function getRelativeMonth(monthOffset: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() + monthOffset);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+// Current month dates
+const TODAY = getRelativeDate(0, new Date().getDate());
+const CURRENT_MONTH_START = getRelativeDate(0, 1);
+const CURRENT_MONTH_MID = getRelativeDate(0, 15);
+
+// Previous month dates
+const PREV_MONTH_START = getRelativeDate(-1, 1);
+const PREV_MONTH_MID = getRelativeDate(-1, 15);
+
+// Next month dates
+const NEXT_MONTH_START = getRelativeDate(1, 1);
+
+// Month strings for assignments
+const CURRENT_MONTH = getRelativeMonth(0);
+const PREV_MONTH = getRelativeMonth(-1);
 
 interface TestResult {
   scenario: string;
@@ -191,18 +221,24 @@ async function testExportWorkflow(page: Page): Promise<TestResult> {
       const downloadPath = path.join(SCREENSHOT_DIR, 'exported-budget.json');
       await download.saveAs(downloadPath);
 
-      // Verify the JSON structure
+      // Verify the JSON structure (new format has budgets array)
       const exportedData = JSON.parse(fs.readFileSync(downloadPath, 'utf-8'));
+      const budgetData = exportedData.budgets?.[0];
 
-      result.notes.push(`Export format: JSON (version ${exportedData.version})`);
-      result.notes.push(`Contains: ${exportedData.categoryGroups?.length || 0} groups, ${exportedData.categories?.length || 0} categories, ${exportedData.transactions?.length || 0} transactions`);
+      result.notes.push(`Export format: JSON (version ${exportedData.version}, schema ${exportedData.schemaVersion})`);
+      result.notes.push(`Contains: ${budgetData?.categoryGroups?.length || 0} groups, ${budgetData?.categories?.length || 0} categories, ${budgetData?.transactions?.length || 0} transactions`);
 
-      // Check required fields
-      const requiredFields = ['version', 'exportedAt', 'budget', 'accounts', 'categoryGroups', 'categories', 'transactions', 'payees', 'assignments'];
-      const missingFields = requiredFields.filter(f => !(f in exportedData));
+      // Check required top-level fields
+      const requiredTopLevel = ['version', 'schemaVersion', 'exportedAt', 'budgets'];
+      const missingTopLevel = requiredTopLevel.filter(f => !(f in exportedData));
 
-      if (missingFields.length > 0) {
-        result.issues.push(`Export missing fields: ${missingFields.join(', ')}`);
+      // Check required budget-level fields
+      const requiredBudgetFields = ['budget', 'accounts', 'categoryGroups', 'categories', 'transactions', 'payees', 'assignments'];
+      const missingBudgetFields = budgetData ? requiredBudgetFields.filter(f => !(f in budgetData)) : requiredBudgetFields;
+
+      if (missingTopLevel.length > 0 || missingBudgetFields.length > 0) {
+        if (missingTopLevel.length > 0) result.issues.push(`Export missing top-level fields: ${missingTopLevel.join(', ')}`);
+        if (missingBudgetFields.length > 0) result.issues.push(`Export missing budget fields: ${missingBudgetFields.join(', ')}`);
         result.status = 'PARTIAL';
       }
 
@@ -248,26 +284,32 @@ async function testImportWorkflow(page: Page): Promise<TestResult> {
     console.log('  Exporting current state...');
     result.screenshots.push(await screenshot(page, 'import-before'));
 
-    // Create modified import data
+    // Create modified import data (new format with budgets array)
     const modifiedData = {
       version: "1.0",
+      schemaVersion: 1,
       exportedAt: new Date().toISOString(),
-      budget: { id: "test-budget", name: "Imported Budget" },
-      accounts: [{ id: "acc-1", budgetId: "test-budget", name: "Cash", type: "cash" }],
-      categoryGroups: [
-        { id: "grp-import-1", budgetId: "test-budget", name: "Imported Group", sortOrder: 0 }
-      ],
-      categories: [
-        { id: "cat-import-1", groupId: "grp-import-1", name: "Imported Category", sortOrder: 0 }
-      ],
-      transactions: [
-        { id: "txn-import-1", accountId: "acc-1", date: "2026-01-01", amount: -5000, categoryId: "cat-import-1", payeeId: null, memo: "Imported transaction", cleared: false, transferAccountId: null }
-      ],
-      payees: [],
-      assignments: [
-        { id: "assign-import-1", categoryId: "cat-import-1", month: "2026-01", amount: 10000 }
-      ],
-      targets: []
+      budgets: [
+        {
+          budget: { id: "test-budget", name: "Imported Budget", currency: "USD" },
+          accounts: [{ id: "acc-1", budgetId: "test-budget", name: "Cash", type: "cash", onBudget: true }],
+          categoryGroups: [
+            { id: "grp-import-1", budgetId: "test-budget", name: "Imported Group", sortOrder: 0 }
+          ],
+          categories: [
+            { id: "cat-import-1", groupId: "grp-import-1", name: "Imported Category", sortOrder: 0 }
+          ],
+          transactions: [
+            { id: "txn-import-1", accountId: "acc-1", date: CURRENT_MONTH_START, amount: -5000, categoryId: "cat-import-1", payeeId: null, memo: "Imported transaction", cleared: false, transferAccountId: null }
+          ],
+          payees: [],
+          assignments: [
+            { id: "assign-import-1", categoryId: "cat-import-1", month: CURRENT_MONTH, amount: 10000 }
+          ],
+          targets: [],
+          monthSummaries: []
+        }
+      ]
     };
 
     // Save modified data to file
@@ -590,29 +632,29 @@ async function testMultiMonth(page: Page): Promise<TestResult> {
     await addCategoryGroup(page, 'Monthly Bills');
     await addCategory(page, 'Monthly Bills', 'Subscription');
 
-    // Add income and assignment in current month (January 2026)
-    console.log('  Setting up January 2026...');
+    // Add income and assignment in current month
+    console.log(`  Setting up current month (${CURRENT_MONTH})...`);
     await addTransaction(page, {
       payee: 'Salary',
       amount: '5000.00',
       isOutflow: false,
-      date: '2026-01-15'
+      date: CURRENT_MONTH_MID
     });
 
     await assignToCategory(page, 'Subscription', '100');
-    result.screenshots.push(await screenshot(page, 'multimonth-january'));
+    result.screenshots.push(await screenshot(page, 'multimonth-current-month'));
 
-    // Navigate to February
-    console.log('  Navigating to February 2026...');
+    // Navigate to next month
+    console.log(`  Navigating to next month (${getRelativeMonth(1)})...`);
     await navigateToMonth(page, 'next');
     await page.waitForTimeout(500);
 
-    result.screenshots.push(await screenshot(page, 'multimonth-february'));
+    result.screenshots.push(await screenshot(page, 'multimonth-next-month'));
 
     // Check if assignment carries over or shows inherited value
     const subscriptionRow = page.locator('.budget-table__category-row', { hasText: 'Subscription' });
     const assignedValue = await subscriptionRow.locator('.budget-table__cell--editable').textContent();
-    result.notes.push(`February assignment display: ${assignedValue?.trim()}`);
+    result.notes.push(`Next month assignment display: ${assignedValue?.trim()}`);
 
     // Check for inherited value styling
     const hasInheritedClass = await subscriptionRow.locator('.budget-table__inherited-value').count();
@@ -620,24 +662,24 @@ async function testMultiMonth(page: Page): Promise<TestResult> {
       result.notes.push('Inherited values are styled differently (good UX)');
     }
 
-    // Add transaction in February
+    // Add transaction in next month
     await addTransaction(page, {
       payee: 'Netflix',
       category: 'Subscription',
       amount: '15.99',
-      date: '2026-02-01'
+      date: NEXT_MONTH_START
     });
 
-    result.screenshots.push(await screenshot(page, 'multimonth-february-transaction'));
+    result.screenshots.push(await screenshot(page, 'multimonth-next-month-transaction'));
 
-    // Navigate to December 2025 (previous month)
+    // Navigate to previous months
     console.log('  Navigating to previous months...');
-    // Go back 3 months (Feb -> Jan -> Dec)
+    // Go back 2 months from next month (next -> current -> prev)
     await navigateToMonth(page, 'prev');
     await navigateToMonth(page, 'prev');
     await page.waitForTimeout(500);
 
-    result.screenshots.push(await screenshot(page, 'multimonth-december'));
+    result.screenshots.push(await screenshot(page, 'multimonth-prev-month'));
 
     // Navigate back to current month using 't' shortcut
     await page.keyboard.press('t');
@@ -860,20 +902,20 @@ async function testExportImportRoundTrip(page: Page): Promise<TestResult> {
     await addCategory(page, 'Savings Goals', 'New Car');
 
     // Add income
-    await addTransaction(page, { payee: 'Employer', amount: '5000.00', isOutflow: false, date: '2026-01-01' });
+    await addTransaction(page, { payee: 'Employer', amount: '5000.00', isOutflow: false, date: CURRENT_MONTH_START });
 
-    // 20+ transactions
+    // 20+ transactions - use dates spread across current month
     const txnData = [
-      { payee: 'Landlord', category: 'Rent', amount: '1500.00', date: '2026-01-01' },
-      { payee: 'State Farm', category: 'Insurance', amount: '150.00', date: '2026-01-05' },
-      { payee: 'Verizon', category: 'Phone', amount: '85.00', date: '2026-01-10' },
-      { payee: 'Kroger', category: 'Groceries', amount: '125.00', date: '2026-01-02' },
-      { payee: 'Walmart', category: 'Groceries', amount: '98.50', date: '2026-01-08' },
-      { payee: 'Olive Garden', category: 'Dining Out', amount: '45.00', date: '2026-01-05' },
-      { payee: 'Shell', category: 'Gas', amount: '55.00', date: '2026-01-03' },
-      { payee: 'BP', category: 'Gas', amount: '48.00', date: '2026-01-12' },
-      { payee: 'Netflix', category: 'Entertainment', amount: '15.99', date: '2026-01-01' },
-      { payee: 'Spotify', category: 'Entertainment', amount: '9.99', date: '2026-01-01' },
+      { payee: 'Landlord', category: 'Rent', amount: '1500.00', date: getRelativeDate(0, 1) },
+      { payee: 'State Farm', category: 'Insurance', amount: '150.00', date: getRelativeDate(0, 5) },
+      { payee: 'Verizon', category: 'Phone', amount: '85.00', date: getRelativeDate(0, 10) },
+      { payee: 'Kroger', category: 'Groceries', amount: '125.00', date: getRelativeDate(0, 2) },
+      { payee: 'Walmart', category: 'Groceries', amount: '98.50', date: getRelativeDate(0, 8) },
+      { payee: 'Olive Garden', category: 'Dining Out', amount: '45.00', date: getRelativeDate(0, 5) },
+      { payee: 'Shell', category: 'Gas', amount: '55.00', date: getRelativeDate(0, 3) },
+      { payee: 'BP', category: 'Gas', amount: '48.00', date: getRelativeDate(0, 12) },
+      { payee: 'Netflix', category: 'Entertainment', amount: '15.99', date: getRelativeDate(0, 1) },
+      { payee: 'Spotify', category: 'Entertainment', amount: '9.99', date: getRelativeDate(0, 1) },
     ];
 
     for (const txn of txnData) {
@@ -906,9 +948,10 @@ async function testExportImportRoundTrip(page: Page): Promise<TestResult> {
     const exportPath = path.join(SCREENSHOT_DIR, 'roundtrip-export.json');
     await download.saveAs(exportPath);
 
-    // Read and verify export
+    // Read and verify export (new format has budgets array)
     const exportedData = JSON.parse(fs.readFileSync(exportPath, 'utf-8'));
-    result.notes.push(`Exported: ${exportedData.categoryGroups.length} groups, ${exportedData.categories.length} categories, ${exportedData.transactions.length} transactions, ${exportedData.assignments.length} assignments`);
+    const budgetData = exportedData.budgets?.[0];
+    result.notes.push(`Exported: ${budgetData?.categoryGroups?.length || 0} groups, ${budgetData?.categories?.length || 0} categories, ${budgetData?.transactions?.length || 0} transactions, ${budgetData?.assignments?.length || 0} assignments`);
 
     // Reload page to get fresh state (simulates "clearing")
     console.log('  Reloading page (simulating clear)...');
