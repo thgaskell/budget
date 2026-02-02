@@ -79,7 +79,27 @@ export async function initStore(options: StoreOptions = {}): Promise<Store> {
     }
 
     try {
-      store = await SqliteStore.create(data)
+      // Use createUnmigrated to load without version validation
+      store = await SqliteStore.createUnmigrated(data)
+
+      // Check if migration is needed
+      const sqliteStore = store as SqliteStore
+      if (sqliteStore.needsMigration()) {
+        const currentVersion = sqliteStore.getSchemaVersion()
+        const latestVersion = sqliteStore.getLatestSchemaVersion()
+
+        console.log(`Database schema v${currentVersion} → v${latestVersion}`)
+
+        for (const m of sqliteStore.getPendingMigrations()) {
+          console.log(`  • v${m.version}: ${m.description}`)
+        }
+
+        const result = sqliteStore.migrate()
+        console.log(`Migrated ${result.applied} version(s)`)
+
+        // Save immediately after migration
+        writeFileSync(dbPath, Buffer.from(sqliteStore.export()))
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new Error(`Database file at ${dbPath} is corrupted or invalid: ${message}`)

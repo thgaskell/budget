@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Unified Export Format** - Export now uses `store.toJSON()` for complete data including all transactions, schemaVersion, and monthSummaries (previously only exported current month's transactions)
+- **Unified Import Format** - Import now uses `store.fromJSON()` with `StoreExportData` type from `@budget/core` for cross-platform compatibility with CLI
+
+### Removed
+
+- Custom `BudgetExportData` type (replaced by `StoreExportData` from `@budget/core`)
+
 ## [0.1.0] - 2026-01-02
 
 ### Added

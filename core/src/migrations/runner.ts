@@ -263,8 +263,9 @@ export function runMigrations(
     db.run('COMMIT')
   } catch (error) {
     db.run('ROLLBACK')
-    const context = failedMigration
-      ? ` (failed at version ${failedMigration.version}: ${failedMigration.description})`
+    const failed = failedMigration as Migration | null
+    const context = failed
+      ? ` (failed at version ${failed.version}: ${failed.description})`
       : ''
     throw new Error(
       `Migration failed${context}: ${error instanceof Error ? error.message : String(error)}`

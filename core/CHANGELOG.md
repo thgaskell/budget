@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- TypeScript control flow analysis error in migration runner catch block
+
 ### Added
 
 - **Database Migrations** - TypeScript migration system with zod validation

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Auto-migrate on Load** - CLI now uses `createUnmigrated()` and auto-migrates old databases with user notification (shows version transition and migration descriptions)
+
 ## [0.3.0] - 2026-01-04
 
 ### Added
