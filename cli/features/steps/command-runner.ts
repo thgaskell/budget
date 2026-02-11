@@ -1,9 +1,6 @@
 import { Command } from 'commander'
 import type { Store } from '@budget/core'
-import { SqliteStore } from '@budget/core'
-import { writeFileSync } from 'fs'
 import { setStore, saveStore } from '../../src/store.ts'
-import { getCurrentDbPath } from '../../src/config.ts'
 import {
   registerBudgetCommands,
   registerAccountCommands,
@@ -87,7 +84,7 @@ export async function runCommand(command: string, store: Store): Promise<Command
       .version('0.1.0')
       .option('--json', 'Output in JSON format')
       .option('--quiet', 'Minimal output (IDs only)')
-      .option('--db <path>', 'Path to SQLite database file')
+      .option('-f, --file <path>', 'Path to .budget file')
       .exitOverride() // Prevent process.exit
 
     // Capture errors
@@ -129,16 +126,6 @@ export async function runCommand(command: string, store: Store): Promise<Command
 
     // Save after command completes
     saveStore()
-
-    // For file-based stores, also save to disk
-    const dbPath = getCurrentDbPath()
-    if (dbPath && store) {
-      const sqliteStore = store as SqliteStore
-      if (typeof sqliteStore.export === 'function') {
-        const data = sqliteStore.export()
-        writeFileSync(dbPath, Buffer.from(data))
-      }
-    }
   } catch (error) {
     if (error instanceof Error) {
       // Commander throws on errors, capture message

@@ -4,7 +4,7 @@ import {
   createCategoryGroup,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
-import { requireActiveBudgetId } from '../config.ts'
+import { requireBudgetId } from '../budget-helpers.ts'
 import {
   outputSuccess,
   outputError,
@@ -45,7 +45,7 @@ export function registerCategoryCommands(program: Command): void {
     .action(async (name: string, opts: { group: string }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         // Find group
@@ -85,7 +85,7 @@ export function registerCategoryCommands(program: Command): void {
     .action(async () => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
         const groups = store.listCategoryGroups(budgetId)
         const categories = store.listCategories(budgetId)
@@ -138,7 +138,7 @@ export function registerCategoryCommands(program: Command): void {
     .action(async (idOrName: string, opts: { force?: boolean }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
         const categories = store.listCategories(budgetId)
 
@@ -204,7 +204,7 @@ export function registerGroupCommands(program: Command): void {
     .action(async (name: string) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         // Get sort order
@@ -236,7 +236,7 @@ export function registerGroupCommands(program: Command): void {
     .action(async () => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
         const groups = store.listCategoryGroups(budgetId)
 
@@ -278,7 +278,7 @@ export function registerGroupCommands(program: Command): void {
     .action(async (idOrName: string) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         // Find group by ID or name
@@ -332,7 +332,7 @@ export function registerGroupCommands(program: Command): void {
     .action(async (id: string, opts: { force?: boolean }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         const categoryGroup = store.getCategoryGroup(id)

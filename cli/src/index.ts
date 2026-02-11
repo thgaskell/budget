@@ -22,12 +22,12 @@ program
   .version(pkg.version)
   .option('--json', 'Output in JSON format')
   .option('--quiet', 'Minimal output (IDs only)')
-  .option('--db <path>', 'Path to SQLite database file')
+  .option('-f, --file <path>', 'Path to .budget file')
 
 // Initialize store after parsing but before command execution
 program.hook('preAction', async (thisCommand) => {
   const opts = thisCommand.opts()
-  await initStore({ dbPath: opts.db })
+  await initStore({ dbPath: opts.file })
 })
 
 // Register all commands

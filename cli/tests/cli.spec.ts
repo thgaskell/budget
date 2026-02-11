@@ -16,10 +16,9 @@ describe('CLI', () => {
     vi.resetModules()
     // Create unique test directory for each test
     testDir = join(tmpdir(), `budget-cli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`)
-    testDbPath = join(testDir, 'test.sqlite')
+    testDbPath = join(testDir, 'test.budget')
     // Clear relevant env vars
     delete process.env.BUDGET_DB_PATH
-    delete process.env.BUDGET_CONFIG_DIR
   })
 
   afterEach(async () => {
@@ -39,23 +38,38 @@ describe('CLI', () => {
     process.env = { ...originalEnv }
   })
 
-  describe('--db flag', () => {
-    it('accepts --db flag in CLI options', async () => {
+  describe('--file flag', () => {
+    it('accepts --file flag in CLI options', async () => {
       const program = new Command()
 
       program
         .name('budget')
-        .option('--db <path>', 'Path to SQLite database file')
+        .option('-f, --file <path>', 'Path to .budget file')
         .allowUnknownOption()
         .allowExcessArguments()
 
-      program.parse(['node', 'budget', '--db', '/some/path/test.db'])
+      program.parse(['node', 'budget', '--file', '/some/path/test.budget'])
 
       const opts = program.opts()
-      expect(opts.db).toBe('/some/path/test.db')
+      expect(opts.file).toBe('/some/path/test.budget')
     })
 
-    it('preAction hook initializes store with --db path', async () => {
+    it('accepts -f shorthand in CLI options', async () => {
+      const program = new Command()
+
+      program
+        .name('budget')
+        .option('-f, --file <path>', 'Path to .budget file')
+        .allowUnknownOption()
+        .allowExcessArguments()
+
+      program.parse(['node', 'budget', '-f', '/some/path/test.budget'])
+
+      const opts = program.opts()
+      expect(opts.file).toBe('/some/path/test.budget')
+    })
+
+    it('preAction hook initializes store with --file path', async () => {
       const { initStore, resetStore, getStore } = await import('../src/store.ts')
       resetStore()
 
@@ -67,14 +81,14 @@ describe('CLI', () => {
       expect(() => getStore()).not.toThrow()
     })
 
-    it('uses custom database path from --db flag', async () => {
+    it('uses custom database path from --file flag', async () => {
       const { initStore, resetStore, closeStore } = await import('../src/store.ts')
       const { createBudget } = await import('@budget/core')
       resetStore()
 
-      const customDbPath = join(testDir, 'custom', 'db', 'budget.sqlite')
+      const customDbPath = join(testDir, 'custom', 'db', 'budget.budget')
 
-      // Initialize with custom path (simulating --db flag)
+      // Initialize with custom path (simulating --file flag)
       const store = await initStore({ dbPath: customDbPath })
 
       // Create a budget
@@ -94,23 +108,25 @@ describe('CLI', () => {
     })
   })
 
-  describe('--memory flag removal', () => {
-    it('--memory flag is not defined in CLI options', async () => {
+  describe('removed flags', () => {
+    it('--memory and --db flags are not defined in CLI options', async () => {
       const program = new Command()
 
       program
         .name('budget')
         .option('--json', 'Output in JSON format')
         .option('--quiet', 'Minimal output (IDs only)')
-        .option('--db <path>', 'Path to SQLite database file')
+        .option('-f, --file <path>', 'Path to .budget file')
 
       // Parse help to check available options
       const helpInfo = program.helpInformation()
 
-      expect(helpInfo).toContain('--db')
+      expect(helpInfo).toContain('--file')
+      expect(helpInfo).toContain('-f')
       expect(helpInfo).toContain('--json')
       expect(helpInfo).toContain('--quiet')
       expect(helpInfo).not.toContain('--memory')
+      expect(helpInfo).not.toContain('--db')
     })
   })
 

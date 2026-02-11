@@ -6,7 +6,6 @@ Feature: Budget Allocation
   Background:
     Given I am using an in-memory store
     And a budget named "Test Budget" exists
-    And "Test Budget" is the active budget
     And an account named "Checking" of type "checking" exists
     And a category group named "Expenses" exists
     And a category named "Groceries" in group "Expenses" exists

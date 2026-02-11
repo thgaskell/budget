@@ -1,9 +1,8 @@
-import { Given, Then, Before, After, World, defineStep, When } from '@cucumber/cucumber'
+import { Given, Then, Before, After, World, defineStep } from '@cucumber/cucumber'
 import { expect } from 'chai'
-import { existsSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, rmSync } from 'fs'
 import {
   MemoryStore,
-  SqliteStore,
   createBudget,
   createAccount,
   createCategoryGroup,
@@ -17,14 +16,6 @@ import {
   type Category,
 } from '@budget/core'
 import { setStore, resetStore } from '../../src/store.ts'
-import {
-  setActiveBudgetId,
-  clearActiveBudgetId,
-  setCurrentDbPath,
-} from '../../src/config.ts'
-
-// Test config directory for file-based store tests
-const TEST_CONFIG_DIR = '/tmp/budget-feature-test-config'
 
 // World context for sharing state between steps
 interface TestWorld extends World {
@@ -37,7 +28,6 @@ interface TestWorld extends World {
   groups: Map<string, CategoryGroup>
   categories: Map<string, Category>
   lastTransactionId: string
-  dbPath?: string
   usedDbPaths: string[]
 }
 
@@ -51,28 +41,16 @@ Before(function (this: TestWorld) {
   this.capturedId = ''
   this.lastTransactionId = ''
   this.usedDbPaths = []
-
-  // Set up test config directory
-  process.env.BUDGET_CONFIG_DIR = TEST_CONFIG_DIR
-  if (!existsSync(TEST_CONFIG_DIR)) {
-    mkdirSync(TEST_CONFIG_DIR, { recursive: true })
-  }
 })
 
 After(function (this: TestWorld) {
   resetStore()
-  clearActiveBudgetId()
 
   // Clean up test database files
   for (const dbPath of this.usedDbPaths || []) {
     if (existsSync(dbPath)) {
       rmSync(dbPath, { force: true })
     }
-  }
-
-  // Clean up test config directory
-  if (existsSync(TEST_CONFIG_DIR)) {
-    rmSync(TEST_CONFIG_DIR, { recursive: true, force: true })
   }
 })
 
@@ -82,72 +60,11 @@ Given('I am using an in-memory store', function (this: TestWorld) {
   setStore(this.store)
 })
 
-// File-based store for config isolation tests
-Given(
-  'I am using a file-based store at {string}',
-  async function (this: TestWorld, dbPath: string) {
-    // Save current store before switching
-    if (this.store && this.dbPath) {
-      const sqliteStore = this.store as SqliteStore
-      if (typeof sqliteStore.export === 'function') {
-        const data = sqliteStore.export()
-        writeFileSync(this.dbPath, Buffer.from(data))
-      }
-    }
-
-    // Track for cleanup
-    if (!this.usedDbPaths.includes(dbPath)) {
-      this.usedDbPaths.push(dbPath)
-    }
-    this.dbPath = dbPath
-
-    // Close existing store if any
-    resetStore()
-
-    // Set the current database path for config isolation
-    setCurrentDbPath(dbPath)
-
-    // Load existing data if file exists, or create new database
-    if (existsSync(dbPath)) {
-      const data = readFileSync(dbPath)
-      this.store = await SqliteStore.create(data)
-    } else {
-      this.store = await SqliteStore.create()
-      // Save immediately to create the file
-      const sqliteStore = this.store as SqliteStore
-      const data = sqliteStore.export()
-      writeFileSync(dbPath, Buffer.from(data))
-    }
-
-    setStore(this.store)
-  }
-)
-
-// Reset store and config for simulating new session
-When('I reset the store and config', function (this: TestWorld) {
-  // Save current store before resetting
-  if (this.store && this.dbPath) {
-    const sqliteStore = this.store as SqliteStore
-    const data = sqliteStore.export()
-    writeFileSync(this.dbPath, Buffer.from(data))
-  }
-  resetStore()
-  // Note: We don't clear config - the active budget should persist in config file
-})
-
 // Budget setup
 Given('a budget named {string} exists', function (this: TestWorld, name: string) {
   const budget = createBudget({ name })
   this.store.saveBudget(budget)
   this.budgets.set(name, budget)
-})
-
-Given('{string} is the active budget', function (this: TestWorld, name: string) {
-  const budget = this.budgets.get(name)
-  if (!budget) {
-    throw new Error(`Budget "${name}" not found`)
-  }
-  setActiveBudgetId(budget.id)
 })
 
 Given('I capture the budget ID for {string}', function (this: TestWorld, name: string) {

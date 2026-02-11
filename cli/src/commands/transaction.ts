@@ -6,7 +6,7 @@ import {
   type Transaction,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
-import { requireActiveBudgetId } from '../config.ts'
+import { requireBudgetId } from '../budget-helpers.ts'
 import { parseAmount } from '../utils/parse-amount.ts'
 import { parseDate, getTodayISO } from '../utils/parse-date.ts'
 import {
@@ -86,7 +86,7 @@ export function registerTransactionCommands(program: Command): void {
       }) => {
         const options = program.opts() as OutputOptions
         try {
-          const budgetId = requireActiveBudgetId()
+          const budgetId = requireBudgetId()
           const store = getStore()
 
           // Find account
@@ -155,7 +155,7 @@ export function registerTransactionCommands(program: Command): void {
       }) => {
         const options = program.opts() as OutputOptions
         try {
-          const budgetId = requireActiveBudgetId()
+          const budgetId = requireBudgetId()
           const store = getStore()
 
           const budget = store.getBudget(budgetId)
@@ -228,7 +228,7 @@ export function registerTransactionCommands(program: Command): void {
     .action(async (id: string) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         const transaction = store.getTransaction(id)
@@ -324,7 +324,7 @@ export function registerTransactionCommands(program: Command): void {
       ) => {
         const options = program.opts() as OutputOptions
         try {
-          const budgetId = requireActiveBudgetId()
+          const budgetId = requireBudgetId()
           const store = getStore()
 
           const transaction = store.getTransaction(id)
@@ -395,7 +395,7 @@ export function registerTransactionCommands(program: Command): void {
     .action(async (id: string, _opts: { force?: boolean }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         const transaction = store.getTransaction(id)

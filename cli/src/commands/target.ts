@@ -8,7 +8,7 @@ import {
   type TargetType,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
-import { requireActiveBudgetId } from '../config.ts'
+import { requireBudgetId } from '../budget-helpers.ts'
 import { parseAmount } from '../utils/parse-amount.ts'
 import { parseDate, getCurrentMonth } from '../utils/parse-date.ts'
 import {
@@ -105,7 +105,7 @@ export function registerTargetCommands(program: Command): void {
       ) => {
         const options = program.opts() as OutputOptions
         try {
-          const budgetId = requireActiveBudgetId()
+          const budgetId = requireBudgetId()
           const store = getStore()
 
           // Find category
@@ -178,7 +178,7 @@ export function registerTargetCommands(program: Command): void {
     .action(async (categoryArg: string, opts: { month?: string }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         // Find category
@@ -290,7 +290,7 @@ export function registerTargetCommands(program: Command): void {
     .action(async (categoryArg: string) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         // Find category

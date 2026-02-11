@@ -6,7 +6,6 @@ Feature: Transaction Management
   Background:
     Given I am using an in-memory store
     And a budget named "Test Budget" exists
-    And "Test Budget" is the active budget
     And an account named "Checking" of type "checking" exists
 
   Scenario: Add an income transaction

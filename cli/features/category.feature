@@ -6,7 +6,6 @@ Feature: Category Management
   Background:
     Given I am using an in-memory store
     And a budget named "Test Budget" exists
-    And "Test Budget" is the active budget
 
   Scenario: Create a category group
     When I run "budget group add 'Monthly Bills'"

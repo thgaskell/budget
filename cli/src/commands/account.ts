@@ -5,7 +5,7 @@ import {
   type AccountType,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
-import { requireActiveBudgetId } from '../config.ts'
+import { requireBudgetId } from '../budget-helpers.ts'
 import {
   outputSuccess,
   outputError,
@@ -34,7 +34,7 @@ export function registerAccountCommands(program: Command): void {
     .action(async (name: string, opts: { type: string; offBudget?: boolean }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         const accountType = opts.type.toLowerCase() as AccountType
@@ -67,7 +67,7 @@ export function registerAccountCommands(program: Command): void {
     .action(async () => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
         const accounts = store.listAccounts(budgetId)
 
@@ -122,7 +122,7 @@ export function registerAccountCommands(program: Command): void {
     .action(async (idOrName: string, opts: { limit: string }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
         const accounts = store.listAccounts(budgetId)
 
@@ -207,7 +207,7 @@ export function registerAccountCommands(program: Command): void {
     .action(async (id: string, _opts: { force?: boolean }) => {
       const options = program.opts() as OutputOptions
       try {
-        const budgetId = requireActiveBudgetId()
+        const budgetId = requireBudgetId()
         const store = getStore()
 
         const account = store.getAccount(id)

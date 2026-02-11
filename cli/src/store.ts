@@ -1,7 +1,6 @@
 import { SqliteStore, type Store, type Budget } from '@budget/core'
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
-import { getDefaultDbPath, loadConfig, setCurrentDbPath, resetCurrentDbPath } from './config.ts'
 
 let store: Store | null = null
 let dbPath: string | null = null
@@ -48,14 +47,14 @@ export async function initStore(options: StoreOptions = {}): Promise<Store> {
     return store
   }
 
-  const config = loadConfig()
-  dbPath = options.dbPath || config.dbPath || getDefaultDbPath()
+  if (!options.dbPath) {
+    throw new Error('No .budget file specified. Use --file/-f <path> to specify a .budget file.')
+  }
+
+  dbPath = options.dbPath
 
   // Validate path is writable before proceeding
   validateDbPath(dbPath)
-
-  // Set the current database path context for config isolation
-  setCurrentDbPath(dbPath)
 
   // Ensure directory exists
   const dir = dirname(dbPath)
@@ -179,7 +178,6 @@ export function closeStore(): void {
 export function resetStore(): void {
   store = null
   dbPath = null
-  resetCurrentDbPath()
 }
 
 /**
