@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { createBudget } from '@budget/core'
-import { getStore, saveStore } from '../store.ts'
+import { getStore, saveStore, populateBudgetMeta } from '../store.ts'
 import {
   getActiveBudgetId,
   setActiveBudgetId,
@@ -27,8 +27,18 @@ export function registerBudgetCommands(program: Command): void {
       const options = program.opts() as OutputOptions
       try {
         const store = getStore()
+
+        // Enforce 1:1 budget-per-file constraint
+        const existingBudgets = store.listBudgets()
+        if (existingBudgets.length > 0) {
+          throw new Error(
+            'This file already contains a budget. Only one budget per .budget file is allowed.'
+          )
+        }
+
         const budget = createBudget({ name, currency: opts.currency })
         store.saveBudget(budget)
+        populateBudgetMeta(budget)
         saveStore()
 
         outputSuccess(`Created budget: ${budget.name}`, options, budget)
@@ -188,6 +198,7 @@ export function registerBudgetCommands(program: Command): void {
         }
 
         store.saveBudget(updatedBudget)
+        populateBudgetMeta(updatedBudget)
         saveStore()
 
         outputSuccess(`Updated budget: ${updatedBudget.name}`, options, updatedBudget)

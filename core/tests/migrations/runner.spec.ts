@@ -80,6 +80,7 @@ describe('Migration Runner', () => {
         'assignments',
         'month_summaries',
         'schema_version',
+        '_budget_meta',
       ]
       for (const table of expectedTables) {
         const stmt = db.prepare(
@@ -231,6 +232,44 @@ describe('Migration Runner', () => {
 
     it('all migrations pass validation', () => {
       expect(() => validateMigrations(migrations)).not.toThrow()
+    })
+  })
+
+  describe('migration 002 - budget metadata', () => {
+    it('creates _budget_meta table with format-level rows', () => {
+      runMigrations(db, migrations)
+
+      // Verify _budget_meta table exists
+      const tableStmt = db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='_budget_meta'"
+      )
+      expect(tableStmt.step()).toBe(true)
+      tableStmt.free()
+
+      // Verify format-level rows
+      const rows: Array<{ key: string; value: string }> = []
+      const stmt = db.prepare('SELECT key, value FROM _budget_meta ORDER BY key')
+      while (stmt.step()) {
+        rows.push(stmt.getAsObject() as { key: string; value: string })
+      }
+      stmt.free()
+
+      expect(rows).toEqual([
+        { key: 'format', value: 'budget-container' },
+        { key: 'format_version', value: '1' },
+        { key: 'generator', value: '@budget/cli@0.3.0' },
+        { key: 'schema_version', value: '2' },
+      ])
+    })
+
+    it('does not include budget-specific rows', () => {
+      runMigrations(db, migrations)
+
+      const stmt = db.prepare(
+        "SELECT value FROM _budget_meta WHERE key IN ('budget_id', 'name', 'currency')"
+      )
+      expect(stmt.step()).toBe(false)
+      stmt.free()
     })
   })
 

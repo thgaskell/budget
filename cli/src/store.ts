@@ -1,4 +1,4 @@
-import { SqliteStore, type Store } from '@budget/core'
+import { SqliteStore, type Store, type Budget } from '@budget/core'
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
 import { getDefaultDbPath, loadConfig, setCurrentDbPath, resetCurrentDbPath } from './config.ts'
@@ -82,8 +82,11 @@ export async function initStore(options: StoreOptions = {}): Promise<Store> {
       // Use createUnmigrated to load without version validation
       store = await SqliteStore.createUnmigrated(data)
 
-      // Check if migration is needed
+      // Set journal_mode=DELETE for single-file container format
       const sqliteStore = store as SqliteStore
+      sqliteStore.runPragma('PRAGMA journal_mode=DELETE')
+
+      // Check if migration is needed
       if (sqliteStore.needsMigration()) {
         const currentVersion = sqliteStore.getSchemaVersion()
         const latestVersion = sqliteStore.getLatestSchemaVersion()
@@ -96,6 +99,12 @@ export async function initStore(options: StoreOptions = {}): Promise<Store> {
 
         const result = sqliteStore.migrate()
         console.log(`Migrated ${result.applied} version(s)`)
+
+        // Backfill budget metadata if budgets exist
+        const budgets = sqliteStore.listBudgets()
+        if (budgets.length > 0) {
+          populateBudgetMeta(budgets[0])
+        }
 
         // Save immediately after migration
         writeFileSync(dbPath, Buffer.from(sqliteStore.export()))
@@ -113,9 +122,12 @@ export async function initStore(options: StoreOptions = {}): Promise<Store> {
       throw new Error(`Cannot create new database: ${message}`)
     }
 
+    // Set journal_mode=DELETE for single-file container format
+    const sqliteStore = store as SqliteStore
+    sqliteStore.runPragma('PRAGMA journal_mode=DELETE')
+
     // Save the empty database to disk immediately
     try {
-      const sqliteStore = store as SqliteStore
       const data = sqliteStore.export()
       writeFileSync(dbPath, Buffer.from(data))
     } catch (err) {
@@ -142,9 +154,8 @@ export function getStore(): Store {
  * Save the store to disk.
  */
 export function saveStore(): void {
-  if (store && dbPath) {
-    const sqliteStore = store as SqliteStore
-    const data = sqliteStore.export()
+  if (store && dbPath && store instanceof SqliteStore) {
+    const data = store.export()
     writeFileSync(dbPath, Buffer.from(data))
   }
 }
@@ -155,9 +166,8 @@ export function saveStore(): void {
 export function closeStore(): void {
   saveStore()
 
-  if (store) {
-    const sqliteStore = store as SqliteStore
-    sqliteStore.close()
+  if (store && store instanceof SqliteStore) {
+    store.close()
   }
 
   store = null
@@ -177,4 +187,24 @@ export function resetStore(): void {
  */
 export function setStore(newStore: Store): void {
   store = newStore
+}
+
+/**
+ * Populate budget-specific metadata in _budget_meta table.
+ * Uses INSERT OR REPLACE to upsert budget_id, name, and currency rows.
+ */
+export function populateBudgetMeta(budget: Budget): void {
+  if (!store || !(store instanceof SqliteStore)) return
+  store.runSql(
+    `INSERT OR REPLACE INTO _budget_meta (key, value) VALUES ('budget_id', ?)`,
+    [budget.id]
+  )
+  store.runSql(
+    `INSERT OR REPLACE INTO _budget_meta (key, value) VALUES ('name', ?)`,
+    [budget.name]
+  )
+  store.runSql(
+    `INSERT OR REPLACE INTO _budget_meta (key, value) VALUES ('currency', ?)`,
+    [budget.currency]
+  )
 }

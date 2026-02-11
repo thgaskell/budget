@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import type { Store } from '@budget/core'
 import { SqliteStore } from '@budget/core'
-import { existsSync, writeFileSync } from 'fs'
+import { writeFileSync } from 'fs'
 import { setStore, saveStore } from '../../src/store.ts'
 import { getCurrentDbPath } from '../../src/config.ts'
 import {

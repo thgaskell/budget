@@ -12,11 +12,12 @@ import {
 
 // Import all migrations
 import { migration as migration001 } from './001-initial.ts'
+import { migration as migration002 } from './002-budget-meta.ts'
 
 /**
  * All available migrations in order.
  */
-export const migrations: Migration[] = [migration001]
+export const migrations: Migration[] = [migration001, migration002]
 
 /**
  * Validate that migrations are properly ordered and sequential.

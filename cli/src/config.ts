@@ -70,10 +70,10 @@ export function getConfigPath(): string {
 
 /**
  * Get the default database path.
- * Uses ~/.budget/budget.sqlite for persistent storage.
+ * Uses ~/.budget/budget.budget for persistent storage.
  */
 export function getDefaultDbPath(): string {
-  return process.env.BUDGET_DB_PATH || join(homedir(), '.budget', 'budget.sqlite')
+  return process.env.BUDGET_DB_PATH || join(homedir(), '.budget', 'budget.budget')
 }
 
 /**

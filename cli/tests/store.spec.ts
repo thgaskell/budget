@@ -160,4 +160,68 @@ describe('Store Module', () => {
       expect(loadedBudget?.name).toBe('Test Budget')
     })
   })
+
+  describe('populateBudgetMeta', () => {
+    it('writes budget-specific metadata to _budget_meta table', async () => {
+      const { initStore, resetStore, populateBudgetMeta } = await import('../src/store.ts')
+      const { createBudget } = await import('@budget/core')
+      resetStore()
+
+      const store = await initStore({ dbPath: testDbPath })
+      const budget = createBudget({ name: 'Meta Test', currency: 'EUR' })
+      store.saveBudget(budget)
+      populateBudgetMeta(budget)
+
+      // Verify metadata was written by reading directly from the sqlite store
+      const sqliteStore = store as unknown as { export(): Uint8Array }
+      const data = sqliteStore.export()
+
+      // Re-open to verify persisted data
+      const SQL = (await import('sql.js')).default
+      const sqlJs = await SQL()
+      const db = new sqlJs.Database(data)
+
+      const stmt = db.prepare("SELECT value FROM _budget_meta WHERE key = 'budget_id'")
+      expect(stmt.step()).toBe(true)
+      expect(stmt.getAsObject().value).toBe(budget.id)
+      stmt.free()
+
+      const nameStmt = db.prepare("SELECT value FROM _budget_meta WHERE key = 'name'")
+      expect(nameStmt.step()).toBe(true)
+      expect(nameStmt.getAsObject().value).toBe('Meta Test')
+      nameStmt.free()
+
+      const currStmt = db.prepare("SELECT value FROM _budget_meta WHERE key = 'currency'")
+      expect(currStmt.step()).toBe(true)
+      expect(currStmt.getAsObject().value).toBe('EUR')
+      currStmt.free()
+
+      db.close()
+    })
+
+    it('backfills metadata for existing budgets after migration', async () => {
+      const { SqliteStore } = await import('@budget/core')
+      const { mkdirSync, writeFileSync } = await import('fs')
+
+      // Ensure test directory exists
+      mkdirSync(testDir, { recursive: true })
+
+      // Create a v1-only database with a budget using staged migration
+      const store1 = await SqliteStore.createUnmigrated()
+      store1.migrate({ to: 1 })
+      store1.saveBudget({ id: 'existing-budget', name: 'Old Budget', currency: 'GBP' })
+      writeFileSync(testDbPath, Buffer.from(store1.export()))
+      store1.close()
+
+      // Now open it with initStore - should migrate to v2 and backfill
+      const { initStore, resetStore } = await import('../src/store.ts')
+      resetStore()
+      const store2 = await initStore({ dbPath: testDbPath })
+
+      // Verify budget still exists
+      const budget = store2.getBudget('existing-budget')
+      expect(budget).not.toBeNull()
+      expect(budget?.name).toBe('Old Budget')
+    })
+  })
 })

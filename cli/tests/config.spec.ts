@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, rmSync } from 'fs'
 import { homedir } from 'os'
 import { join, resolve } from 'path'
 
@@ -24,9 +24,9 @@ describe('Config Module', () => {
   })
 
   describe('getDefaultDbPath', () => {
-    it('returns $HOME/.budget/budget.sqlite by default', async () => {
+    it('returns $HOME/.budget/budget.budget by default', async () => {
       const { getDefaultDbPath } = await import('../src/config.ts')
-      const expected = join(homedir(), '.budget', 'budget.sqlite')
+      const expected = join(homedir(), '.budget', 'budget.budget')
       expect(getDefaultDbPath()).toBe(expected)
     })
 

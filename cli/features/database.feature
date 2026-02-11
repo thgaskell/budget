@@ -17,12 +17,11 @@ Feature: Database Management
     Then the command should succeed
     And the output should contain "Persistent Budget"
 
-  Scenario: Multiple budgets can be created and listed
+  Scenario: Only one budget per file is allowed
     When I run "budget create 'First Budget'"
     And I run "budget create 'Second Budget'"
-    And I run "budget list"
-    Then the output should contain "First Budget"
-    And the output should contain "Second Budget"
+    Then the command should fail
+    And the output should contain "Only one budget per .budget file is allowed"
 
   # Config isolation tests for --db flag
   Scenario: Active budget persists with --db flag

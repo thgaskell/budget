@@ -16,12 +16,11 @@ import {
   type CategoryGroup,
   type Category,
 } from '@budget/core'
-import { setStore, resetStore, saveStore } from '../../src/store.ts'
+import { setStore, resetStore } from '../../src/store.ts'
 import {
   setActiveBudgetId,
   clearActiveBudgetId,
   setCurrentDbPath,
-  resetCurrentDbPath,
 } from '../../src/config.ts'
 
 // Test config directory for file-based store tests

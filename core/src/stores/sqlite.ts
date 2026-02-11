@@ -173,6 +173,20 @@ export class SqliteStore implements Store {
   }
 
   /**
+   * Execute a PRAGMA statement on the database.
+   */
+  runPragma(pragma: string): void {
+    this.db.run(pragma)
+  }
+
+  /**
+   * Execute a raw SQL statement on the database.
+   */
+  runSql(sql: string, params?: SqlValue[]): void {
+    this.db.run(sql, params)
+  }
+
+  /**
    * Export database as binary data for persistence.
    */
   export(): Uint8Array {
