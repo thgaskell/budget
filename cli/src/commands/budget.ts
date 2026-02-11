@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+import { resolve, basename } from 'path'
+import { existsSync } from 'fs'
 import { createBudget } from '@budget/core'
-import { getStore, saveStore, populateBudgetMeta } from '../store.ts'
+import { getStore, initStore, saveStore, populateBudgetMeta } from '../store.ts'
 import { requireBudgetId } from '../budget-helpers.ts'
 import { getDefaultCurrency } from '../config.ts'
 import {
@@ -14,17 +16,33 @@ import {
  * Register budget commands.
  */
 export function registerBudgetCommands(program: Command): void {
-  // budget create <name>
+  // budget create <file_path>
   program
-    .command('create <name>')
-    .description('Create a new budget')
+    .command('create <file_path>')
+    .description('Create a new .budget file')
+    .option('--name <name>', 'Budget name (derived from filename if omitted)')
     .option('--currency <code>', 'Currency code', getDefaultCurrency())
-    .action(async (name: string, opts: { currency: string }) => {
+    .action(async (filePath: string, opts: { name?: string; currency: string }) => {
       const options = program.opts() as OutputOptions
       try {
-        const store = getStore()
+        // Resolve path and auto-append .budget extension
+        let resolvedPath = resolve(filePath)
+        if (!resolvedPath.endsWith('.budget')) {
+          resolvedPath += '.budget'
+        }
 
-        // Enforce 1:1 budget-per-file constraint
+        // Error if file already exists
+        if (existsSync(resolvedPath)) {
+          throw new Error(`File already exists: ${resolvedPath}`)
+        }
+
+        // Derive budget name from filename if --name not provided
+        const budgetName = opts.name ?? basename(resolvedPath, '.budget')
+
+        // Initialize store at the resolved path (creates file)
+        const store = await initStore({ dbPath: resolvedPath })
+
+        // Defense-in-depth: 1:1 budget-per-file constraint
         const existingBudgets = store.listBudgets()
         if (existingBudgets.length > 0) {
           throw new Error(
@@ -32,7 +50,8 @@ export function registerBudgetCommands(program: Command): void {
           )
         }
 
-        const budget = createBudget({ name, currency: opts.currency })
+        // Create the budget
+        const budget = createBudget({ name: budgetName, currency: opts.currency })
         store.saveBudget(budget)
         populateBudgetMeta(budget)
         saveStore()

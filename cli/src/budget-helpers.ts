@@ -8,7 +8,7 @@ export function requireBudgetId(): string {
   const store = getStore()
   const budgets = store.listBudgets()
   if (budgets.length === 0) {
-    throw new Error('No budget found in this file. Use "budget create <name>" to create one.')
+    throw new Error('No budget found in this file. Use "budget create <file_path>" to create one.')
   }
   return budgets[0].id
 }

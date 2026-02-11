@@ -7,12 +7,17 @@ Feature: Budget Management
     Given I am using an in-memory store
 
   Scenario: Create a new budget
-    When I run "budget create 'Home Budget'"
+    When I run "budget create home"
+    Then the command should succeed
+    And the output should contain "Created budget: home"
+
+  Scenario: Create a budget with custom name
+    When I run "budget create home --name 'Home Budget'"
     Then the command should succeed
     And the output should contain "Created budget: Home Budget"
 
   Scenario: Create a budget with custom currency
-    When I run "budget create 'Euro Budget' --currency EUR"
+    When I run "budget create euro --name 'Euro Budget' --currency EUR"
     Then the command should succeed
     And the output should contain "Created budget: Euro Budget"
 

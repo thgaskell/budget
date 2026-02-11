@@ -25,7 +25,10 @@ program
   .option('-f, --file <path>', 'Path to .budget file')
 
 // Initialize store after parsing but before command execution
-program.hook('preAction', async (thisCommand) => {
+program.hook('preAction', async (thisCommand, actionCommand) => {
+  if (actionCommand.name() === 'create') {
+    return // create manages its own store initialization
+  }
   const opts = thisCommand.opts()
   await initStore({ dbPath: opts.file })
 })
