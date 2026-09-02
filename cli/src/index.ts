@@ -12,7 +12,7 @@ import {
   registerTargetCommands,
   registerUpdateCommands,
 } from './commands/index.ts'
-import pkg from '../package.json'
+import pkg from '../package.json' with { type: 'json' }
 
 const program = new Command()
 

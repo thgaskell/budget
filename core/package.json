@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "sql.js": "^1.13.0"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

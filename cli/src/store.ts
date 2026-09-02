@@ -1,6 +1,6 @@
 import { SqliteStore, type Store } from '@budget/core'
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { dirname } from 'path'
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { getDefaultDbPath, loadConfig, setCurrentDbPath, resetCurrentDbPath } from './config.ts'
 
 let store: Store | null = null

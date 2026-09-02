@@ -40,6 +40,7 @@
       "name": "@budget/core",
       "version": "0.3.0",
       "dependencies": {
+        "sql.js": "^1.13.0",
         "zod": "^4.3.6",
       },
       "devDependencies": {
