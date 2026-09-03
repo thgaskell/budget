@@ -134,10 +134,13 @@ budget status
 | Command | Description |
 |---------|-------------|
 | `budget tx add --account <name> --amount <amount> --payee <name> [--category <name>] [--date <date>]` | Add a transaction |
+| `budget tx transfer --from <name> --to <name> --amount <amount> [--category <name>] [--date <date>] [--memo <text>] [--cleared]` | Move money between two accounts as a linked transfer |
+| `budget tx link <id> <id>` | Link two existing transactions as the legs of a transfer |
+| `budget tx unlink <id>` | Clear the transfer link on a transaction and its partner |
 | `budget tx list [--account <name>] [--limit <n>]` | List transactions |
 | `budget tx show <id>` | Show transaction details |
 | `budget tx edit <id> [options]` | Edit a transaction |
-| `budget tx delete <id>` | Delete a transaction |
+| `budget tx delete <id>` | Delete a transaction (both legs, if it is a transfer) |
 
 ### Categories
 
