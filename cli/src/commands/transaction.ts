@@ -289,7 +289,7 @@ export function registerTransactionCommands(program: Command): void {
         outputSuccess(
           result.partner
             ? 'Unlinked transfer on both transactions'
-            : 'Unlinked transfer (no partner transaction found)',
+            : 'Unlinked transfer on this transaction (its other leg was not recorded)',
           options,
           result
         )

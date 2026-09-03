@@ -91,6 +91,8 @@ describe.each([
 
       expect(from.accountId).toBe(account.id)
       expect(from.amount).toBe(-10000) // Outflow is negative
+      expect(from.transferId).toBe(to.id)
+      expect(to.transferId).toBe(from.id)
       expect(from.transferAccountId).toBe(savings.id)
 
       expect(to.accountId).toBe(savings.id)
@@ -317,7 +319,28 @@ describe.each([
       expect(findTransferPartner(store, txn)).toBeNull()
     })
 
-    it('prefers the leg with the mirrored amount when several share a date', () => {
+    it('returns the recorded partner, not a matching leg of another transfer', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const first = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+      const second = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(findTransferPartner(store, first.from)?.id).toBe(first.to.id)
+      expect(findTransferPartner(store, second.from)?.id).toBe(second.to.id)
+    })
+
+    it('returns null when the partner was never recorded', () => {
       const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
       store.saveAccount(savings)
 
@@ -327,18 +350,29 @@ describe.each([
         amount: 10000,
         date: '2024-01-15',
       })
-      const decoy = createTransfer(store, {
-        fromAccountId: account.id,
-        toAccountId: savings.id,
-        amount: 2500,
-        date: '2024-01-15',
-      })
 
-      expect(findTransferPartner(store, from)?.amount).toBe(10000)
-      expect(findTransferPartner(store, from)?.id).not.toBe(decoy.to.id)
+      // A leg written before transfers recorded their partner's id
+      store.saveTransaction({ ...from, transferId: null })
+
+      expect(findTransferPartner(store, store.getTransaction(from.id)!)).toBeNull()
     })
 
-    it('pairs legs recorded on different dates when the amounts mirror', () => {
+    it('returns null when the partner row is gone', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+      store.deleteTransaction(to.id)
+
+      expect(findTransferPartner(store, from)).toBeNull()
+    })
+
+    it('finds a partner linked after the fact, whatever the dates', () => {
       const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
       store.saveAccount(savings)
 
@@ -385,6 +419,8 @@ describe.each([
       expect(linked.second.transferAccountId).toBe(account.id)
       expect(store.getTransaction(outflow.id)?.transferAccountId).toBe(savings.id)
       expect(store.getTransaction(inflow.id)?.transferAccountId).toBe(account.id)
+      expect(store.getTransaction(outflow.id)?.transferId).toBe(inflow.id)
+      expect(store.getTransaction(inflow.id)?.transferId).toBe(outflow.id)
     })
 
     it('throws for a missing transaction', () => {
@@ -545,6 +581,8 @@ describe.each([
       expect(result.partner?.id).toBe(to.id)
       expect(store.getTransaction(from.id)?.transferAccountId).toBeNull()
       expect(store.getTransaction(to.id)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(from.id)?.transferId).toBeNull()
+      expect(store.getTransaction(to.id)?.transferId).toBeNull()
     })
 
     it('throws for a transaction that is not a transfer', () => {
@@ -759,6 +797,195 @@ describe.each([
 
       expect(store.getTransaction(second.from.id)).not.toBeNull()
       expect(store.getTransaction(second.to.id)).not.toBeNull()
+    })
+  })
+
+  describe('two identical transfers between the same accounts on the same day', () => {
+    let savings: ReturnType<typeof createAccount>
+
+    beforeEach(() => {
+      savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+    })
+
+    /**
+     * Two $50 moves from Checking to Savings on the same day is an ordinary thing to
+     * do, and nothing about the rows tells the two pairs apart. Each of these acts on
+     * the second pair and expects the first to come back out of the store exactly as it
+     * went in.
+     */
+    function twoIdenticalTransfers() {
+      const first = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 5000,
+        date: '2024-01-10',
+      })
+      const second = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 5000,
+        date: '2024-01-10',
+      })
+      return {
+        first,
+        second,
+        untouched: {
+          from: store.getTransaction(first.from.id),
+          to: store.getTransaction(first.to.id),
+        },
+      }
+    }
+
+    it('deletes only the pair it was given', () => {
+      const { first, second, untouched } = twoIdenticalTransfers()
+
+      deleteTransactionWithTransfer(store, second.from.id)
+
+      expect(store.getTransaction(second.from.id)).toBeNull()
+      expect(store.getTransaction(second.to.id)).toBeNull()
+      expect(store.getTransaction(first.from.id)).toEqual(untouched.from)
+      expect(store.getTransaction(first.to.id)).toEqual(untouched.to)
+    })
+
+    it('mirrors an amount change onto its own partner only', () => {
+      const { first, second, untouched } = twoIdenticalTransfers()
+
+      updateTransaction(store, second.from.id, { amount: -7500 })
+
+      expect(store.getTransaction(second.from.id)?.amount).toBe(-7500)
+      expect(store.getTransaction(second.to.id)?.amount).toBe(7500)
+      expect(store.getTransaction(first.from.id)).toEqual(untouched.from)
+      expect(store.getTransaction(first.to.id)).toEqual(untouched.to)
+    })
+
+    it('unlinks only the pair it was given', () => {
+      const { first, second, untouched } = twoIdenticalTransfers()
+
+      unlinkTransaction(store, second.from.id)
+
+      expect(store.getTransaction(second.from.id)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(second.to.id)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(first.from.id)).toEqual(untouched.from)
+      expect(store.getTransaction(first.to.id)).toEqual(untouched.to)
+    })
+  })
+
+  describe('a transfer leg whose partner is not recorded', () => {
+    let savings: ReturnType<typeof createAccount>
+
+    beforeEach(() => {
+      savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+    })
+
+    /**
+     * What a row migrated from schema v1 looks like: still marked as a transfer by
+     * transferAccountId, with no record of which row the other leg is.
+     */
+    function legacyLeg() {
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 5000,
+        date: '2024-01-10',
+      })
+      store.saveTransaction({ ...from, transferId: null })
+      store.saveTransaction({ ...to, transferId: null })
+      return { from: store.getTransaction(from.id)!, to: store.getTransaction(to.id)! }
+    }
+
+    it('refuses an amount change and says how to relink', () => {
+      const { from, to } = legacyLeg()
+
+      expect(() => updateTransaction(store, from.id, { amount: -7500 })).toThrow(
+        `Transaction is part of a transfer whose other leg is not recorded: ${from.id}. ` +
+          `Run "tx unlink ${from.id}" to clear this leg, then ` +
+          `"tx link ${from.id} <otherId>" to link it to the right transaction.`
+      )
+      expect(store.getTransaction(from.id)).toEqual(from)
+      expect(store.getTransaction(to.id)).toEqual(to)
+    })
+
+    it('refuses a move to another account', () => {
+      const { from } = legacyLeg()
+      const cash = createAccount({ budgetId: budget.id, name: 'Cash', type: 'cash' })
+      store.saveAccount(cash)
+
+      expect(() => updateTransaction(store, from.id, { accountId: cash.id })).toThrow(
+        'other leg is not recorded'
+      )
+      expect(store.getTransaction(from.id)?.accountId).toBe(account.id)
+    })
+
+    it('refuses a category change', () => {
+      const { from } = legacyLeg()
+
+      expect(() => updateTransaction(store, from.id, { categoryId: category.id })).toThrow(
+        'other leg is not recorded'
+      )
+      expect(store.getTransaction(from.id)?.categoryId).toBeNull()
+    })
+
+    it('allows an edit that cannot break the pair', () => {
+      const { from, to } = legacyLeg()
+
+      updateTransaction(store, from.id, { memo: 'Rent', date: '2024-01-11' })
+
+      expect(store.getTransaction(from.id)?.memo).toBe('Rent')
+      expect(store.getTransaction(to.id)).toEqual(to)
+    })
+
+    it('refuses to delete, since which row to delete with it is a guess', () => {
+      const { from, to } = legacyLeg()
+
+      expect(() => deleteTransactionWithTransfer(store, from.id)).toThrow(
+        `Transaction is part of a transfer whose other leg is not recorded: ${from.id}. ` +
+          `Run "tx unlink ${from.id}" to clear this leg, then ` +
+          `"tx link ${from.id} <otherId>" to link it to the right transaction.`
+      )
+      expect(store.getTransaction(from.id)).toEqual(from)
+      expect(store.getTransaction(to.id)).toEqual(to)
+    })
+
+    it('unlinks that leg alone, leaving the other where it is', () => {
+      const { from, to } = legacyLeg()
+
+      const result = unlinkTransaction(store, from.id)
+
+      expect(result.partner).toBeNull()
+      expect(store.getTransaction(from.id)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(to.id)).toEqual(to)
+    })
+
+    it('can be linked again by id once unlinked, and then edits as a pair', () => {
+      const { from, to } = legacyLeg()
+
+      unlinkTransaction(store, from.id)
+      unlinkTransaction(store, to.id)
+      linkTransactions(store, from.id, to.id)
+
+      updateTransaction(store, from.id, { amount: -7500 })
+
+      expect(store.getTransaction(to.id)?.amount).toBe(7500)
+    })
+
+    it('refuses a pair-changing edit when the partner row was deleted', () => {
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 5000,
+        date: '2024-01-10',
+      })
+      store.deleteTransaction(to.id)
+
+      expect(() => updateTransaction(store, from.id, { amount: -7500 })).toThrow(
+        'other leg is not recorded'
+      )
+      expect(() => deleteTransactionWithTransfer(store, from.id)).toThrow(
+        'other leg is not recorded'
+      )
+      expect(store.getTransaction(from.id)?.amount).toBe(-5000)
     })
   })
 

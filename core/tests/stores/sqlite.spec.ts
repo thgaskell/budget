@@ -172,6 +172,75 @@ describe('SqliteStore', () => {
       expect(retrieved?.payeeId).toBeNull()
       expect(retrieved?.memo).toBeNull()
       expect(retrieved?.transferAccountId).toBeNull()
+      expect(retrieved?.transferId).toBeNull()
+    })
+
+    it('round-trips the recorded transfer partner', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+
+      const outflow = createTransaction({
+        accountId: checking.id,
+        date: '2024-01-10',
+        amount: -5000,
+        transferAccountId: savings.id,
+      })
+      const inflow = createTransaction({
+        accountId: savings.id,
+        date: '2024-01-10',
+        amount: 5000,
+        transferAccountId: checking.id,
+        transferId: outflow.id,
+      })
+      outflow.transferId = inflow.id
+
+      store.saveTransaction(outflow)
+      store.saveTransaction(inflow)
+
+      expect(store.getTransaction(outflow.id)).toEqual(outflow)
+      expect(store.listTransactions(checking.id)[0].transferId).toBe(inflow.id)
+      expect(store.listAllTransactions(budget.id).map((t) => t.transferId)).toEqual([
+        inflow.id,
+        outflow.id,
+      ])
+    })
+
+    it('carries the recorded transfer partner through JSON export and import', async () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+
+      const outflow = createTransaction({
+        accountId: checking.id,
+        date: '2024-01-10',
+        amount: -5000,
+        transferAccountId: savings.id,
+      })
+      const inflow = createTransaction({
+        accountId: savings.id,
+        date: '2024-01-10',
+        amount: 5000,
+        transferAccountId: checking.id,
+        transferId: outflow.id,
+      })
+      outflow.transferId = inflow.id
+      store.saveTransaction(outflow)
+      store.saveTransaction(inflow)
+
+      const exported = JSON.parse(JSON.stringify(store.toJSON()))
+      const imported = await SqliteStore.create()
+      imported.fromJSON(exported)
+
+      expect(imported.getTransaction(outflow.id)?.transferId).toBe(inflow.id)
+      expect(imported.getTransaction(inflow.id)?.transferId).toBe(outflow.id)
+      imported.close()
     })
 
     it('lists all transactions for a budget', () => {

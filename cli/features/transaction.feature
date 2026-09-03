@@ -168,8 +168,69 @@ Feature: Transaction Management
     When I run "budget tx list --json"
     Then the output should be valid JSON
     And the JSON should contain "transferAccountId"
+    And the JSON should contain "transferId"
 
   Scenario: JSON output for transaction list
     Given a transaction of $1000 in "Checking" from "JSON Test"
     When I run "budget tx list --json"
     Then the output should be valid JSON
+
+  Scenario: Deleting one of two identical transfers leaves the other alone
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 50"
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 50"
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx delete <captured-id>"
+    Then the command should succeed
+    And I run "budget tx list --account 'Checking'"
+    And the output should contain "-$50.00"
+    And I run "budget tx list --account 'Savings'"
+    And the output should contain "$50.00"
+    And I run "budget available"
+    And the output should contain "$0.00"
+
+  Scenario: Editing a transfer leg whose other leg was never recorded is refused
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And no transfer partners are recorded in the database
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx edit <captured-id> --amount 900"
+    Then the command should fail
+    And the output should contain "other leg is not recorded"
+    And the output should contain "tx unlink"
+    And the output should contain "tx link"
+    And I run "budget tx list"
+    And the output should contain "$500.00"
+
+  Scenario: Deleting a transfer leg whose other leg was never recorded is refused
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And no transfer partners are recorded in the database
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx delete <captured-id>"
+    Then the command should fail
+    And the output should contain "other leg is not recorded"
+    And I run "budget tx list"
+    And the output should contain "$500.00"
+    And the output should contain "-$500.00"
+
+  Scenario: Relinking a transfer whose legs were never paired by id
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And no transfer partners are recorded in the database
+    And I capture the last transaction ID in "Checking"
+    And I capture the last transaction ID as "outflow"
+    And I capture the last transaction ID in "Savings"
+    And I capture the last transaction ID as "inflow"
+    When I run "budget tx unlink <id:outflow>"
+    Then the command should succeed
+    And the output should contain "Unlinked transfer on this transaction (its other leg was not recorded)"
+    When I run "budget tx unlink <id:inflow>"
+    Then the command should succeed
+    When I run "budget tx link <id:outflow> <id:inflow>"
+    Then the command should succeed
+    And the output should contain "Linked transfer between Checking and Savings"
+    When I run "budget tx edit <id:inflow> --amount 900"
+    Then the command should succeed
+    And I run "budget tx list"
+    And the output should contain "-$900.00"

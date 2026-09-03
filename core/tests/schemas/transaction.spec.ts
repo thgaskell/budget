@@ -43,6 +43,7 @@ describe('Transaction', () => {
       expect(txn.payeeId).toBeNull()
       expect(txn.memo).toBeNull()
       expect(txn.transferAccountId).toBeNull()
+      expect(txn.transferId).toBeNull()
     })
 
     it('accepts all optional fields', () => {
@@ -55,6 +56,7 @@ describe('Transaction', () => {
         memo: 'Grocery shopping',
         cleared: true,
         transferAccountId: 'account-2',
+        transferId: 'txn-2',
       })
 
       expect(txn.categoryId).toBe('category-1')
@@ -62,6 +64,7 @@ describe('Transaction', () => {
       expect(txn.memo).toBe('Grocery shopping')
       expect(txn.cleared).toBe(true)
       expect(txn.transferAccountId).toBe('account-2')
+      expect(txn.transferId).toBe('txn-2')
     })
   })
 

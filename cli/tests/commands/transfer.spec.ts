@@ -407,6 +407,81 @@ describe('Transfer Commands', () => {
     })
   })
 
+  describe('a transfer leg whose other leg is not recorded', () => {
+    /**
+     * What rows migrated from schema v1 look like: still marked as transfers, with no
+     * record of which row each one is paired with. Nothing may act on the pair until
+     * the user names both legs again.
+     */
+    async function migratedPair() {
+      await run('tx transfer --from Checking --to Savings --amount 500 --date 2025-01-15')
+      const outflow = store.listTransactions(checkingId)[0]
+      const inflow = store.listTransactions(savingsId)[0]
+      store.saveTransaction({ ...outflow, transferId: null })
+      store.saveTransaction({ ...inflow, transferId: null })
+      return { outflowId: outflow.id, inflowId: inflow.id }
+    }
+
+    it('refuses tx edit --amount and says how to relink', async () => {
+      const { outflowId, inflowId } = await migratedPair()
+
+      const result = await run(`tx edit ${outflowId} --amount 900`)
+
+      expect(result.exitCode).toBe(1)
+      expect(result.output).toContain(
+        `Transaction is part of a transfer whose other leg is not recorded: ${outflowId}. ` +
+          `Run "tx unlink ${outflowId}" to clear this leg, then ` +
+          `"tx link ${outflowId} <otherId>" to link it to the right transaction.`
+      )
+      expect(store.getTransaction(outflowId)?.amount).toBe(-50000)
+      expect(store.getTransaction(inflowId)?.amount).toBe(50000)
+    })
+
+    it('refuses tx delete rather than deleting a guess', async () => {
+      const { outflowId, inflowId } = await migratedPair()
+
+      const result = await run(`tx delete ${outflowId}`)
+
+      expect(result.exitCode).toBe(1)
+      expect(result.output).toContain(
+        `Transaction is part of a transfer whose other leg is not recorded: ${outflowId}. ` +
+          `Run "tx unlink ${outflowId}" to clear this leg, then ` +
+          `"tx link ${outflowId} <otherId>" to link it to the right transaction.`
+      )
+      expect(store.getTransaction(outflowId)).not.toBeNull()
+      expect(store.getTransaction(inflowId)).not.toBeNull()
+    })
+
+    it('still allows an edit that cannot break the pair', async () => {
+      const { outflowId } = await migratedPair()
+
+      const result = await run(`tx edit ${outflowId} --memo Rent`)
+
+      expect(result.exitCode).toBe(0)
+      expect(store.getTransaction(outflowId)?.memo).toBe('Rent')
+    })
+
+    it('recovers through tx unlink and tx link', async () => {
+      const { outflowId, inflowId } = await migratedPair()
+
+      const unlinkOutflow = await run(`tx unlink ${outflowId}`)
+      expect(unlinkOutflow.exitCode).toBe(0)
+      // Only the leg named is cleared - the other row is left exactly as it was
+      expect(store.getTransaction(outflowId)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(inflowId)?.transferAccountId).toBe(checkingId)
+
+      expect((await run(`tx unlink ${inflowId}`)).exitCode).toBe(0)
+      expect((await run(`tx link ${outflowId} ${inflowId}`)).exitCode).toBe(0)
+
+      const edit = await run(`tx edit ${outflowId} --amount -900`)
+
+      expect(edit.exitCode).toBe(0)
+      expect(store.getTransaction(outflowId)?.amount).toBe(-90000)
+      expect(store.getTransaction(inflowId)?.amount).toBe(90000)
+      expect(getReadyToAssign(store, budgetId, '2025-01')).toBe(0)
+    })
+  })
+
   describe('tx delete', () => {
     it('deletes both legs of a transfer', async () => {
       await run('tx transfer --from Checking --to Savings --amount 500 --date 2025-01-15')

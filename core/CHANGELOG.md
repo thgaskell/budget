@@ -4,6 +4,25 @@
 
 ### Fixed
 
+- **A transfer pair is now recorded by transaction id, not searched for** -
+  `findTransferPartner()` located the other leg by scanning the partner account for a
+  row pointing back, preferring a mirrored amount and then the nearest date. Two $50
+  Checking to Savings transfers on the same day are indistinguishable that way, so
+  deleting one of them deleted a leg of the *other* pair and left two orphaned halves
+  behind; `updateTransaction()` mirrored an amount onto the wrong leg and
+  `unlinkTransaction()` unlinked it, all without an error. Each leg now stores its
+  partner's id in the new `Transaction.transferId`, set only by `createTransfer()` and
+  `linkTransactions()` - the two callers that name both transactions - so nothing is
+  ever inferred from account, amount or date
+- **A transfer leg with no resolvable partner is no longer acted on** - schema v2 adds
+  `transfer_id` without backfilling it, since pairing existing rows would be the same
+  guesswork under another name. Such a leg keeps its `transferAccountId`, so it is
+  still kept out of Ready to Assign and category activity, but `updateTransaction()` on
+  amount, account or category and `deleteTransactionWithTransfer()` now refuse it,
+  naming the leg and the `tx unlink` / `tx link` pair of commands that record the two
+  legs explicitly. `deleteTransactionWithTransfer()` previously deleted whichever row
+  the search returned - including none, silently leaving half a transfer.
+  `unlinkTransaction()` clears such a leg on its own
 - TypeScript control flow analysis error in migration runner catch block
 - **Category activity no longer counts money that never entered the budget** - the
   per-category activity loops in `calculateMonthSummary()`, `getMonthData()`,
@@ -35,11 +54,14 @@
 
 ### Added
 
+- **`Transaction.transferId`** - The other leg's transaction id, carried by both store
+  backends and by the JSON export/import format. Schema migration 002 adds the column;
+  rows written before it keep `transferId = null`
 - **Transfer Linking** - `linkTransactions()` and `unlinkTransaction()` set and clear
   `transferAccountId` on both legs of an existing pair
-- **`findTransferPartner()`** - Shared partner lookup, matching legs on the same date or
-  on offsetting amounts across different dates, since bank exports routinely date the
-  two sides a day or two apart
+- **`findTransferPartner()`** - Shared partner lookup, reading the id the leg records
+  in `transferId`. Returns null when the partner was never recorded or its row is gone;
+  legs are never matched by account, amount or date
 - **`countsAsIncome()`** - Single rule for whether an inflow reaches Ready to Assign
 - **`updateTransaction()`** - Transfer-aware edit path. A new amount is mirrored onto
   the other leg and moving a leg to another account repoints its partner, so an edit

@@ -14,10 +14,23 @@
   - `budget tx link <id> <otherId>` links two transactions that already exist - for
     imports, where both legs land before the pair is recognised
   - `budget tx unlink <id>` clears the link on both sides, leaving the rows intact
-  - `--json` output exposes `transferAccountId`
+  - `--json` output exposes `transferAccountId` and `transferId`
 
 ### Fixed
 
+- **`tx edit` and `tx delete` act on the transfer leg that was actually recorded** -
+  the other leg used to be searched for by account, amount and date, which cannot tell
+  two same-day $50 Checking-to-Savings transfers apart. `budget tx delete` on one of
+  them deleted a leg of the *other* transfer, leaving two orphaned halves and an
+  account balance that no longer matched; `tx edit --amount` mirrored the new amount
+  onto the wrong leg. Both legs now record each other's transaction id
+- **Neither command touches a transfer whose other leg is not recorded** - transfers
+  saved before the id was recorded (databases upgraded to schema v2) have no partner on
+  file, and the old search would delete or edit a guess. `tx edit --amount/--account/
+  --category` and `tx delete` now fail on such a leg, naming it and telling you to run
+  `tx unlink <id>` and then `tx link <id> <otherId>` to record the two legs; edits that
+  cannot break the pair (payee, memo, date, cleared) still work. `tx unlink` on such a
+  leg clears that leg alone and says so
 - **`tx edit` no longer corrupts a transfer** - it applied `--amount`, `--account` and
   `--category` to a linked leg with no awareness of its partner. Editing one leg of a
   $500 transfer to $900 left the other at -$500, so $400 existed with no income

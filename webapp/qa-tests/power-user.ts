@@ -287,7 +287,7 @@ async function testImportWorkflow(page: Page): Promise<TestResult> {
     // Create modified import data (new format with budgets array)
     const modifiedData = {
       version: "1.0",
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: new Date().toISOString(),
       budgets: [
         {
@@ -300,7 +300,7 @@ async function testImportWorkflow(page: Page): Promise<TestResult> {
             { id: "cat-import-1", groupId: "grp-import-1", name: "Imported Category", sortOrder: 0 }
           ],
           transactions: [
-            { id: "txn-import-1", accountId: "acc-1", date: CURRENT_MONTH_START, amount: -5000, categoryId: "cat-import-1", payeeId: null, memo: "Imported transaction", cleared: false, transferAccountId: null }
+            { id: "txn-import-1", accountId: "acc-1", date: CURRENT_MONTH_START, amount: -5000, categoryId: "cat-import-1", payeeId: null, memo: "Imported transaction", cleared: false, transferAccountId: null, transferId: null }
           ],
           payees: [],
           assignments: [

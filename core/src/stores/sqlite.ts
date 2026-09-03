@@ -421,6 +421,7 @@ export class SqliteStore implements Store {
       cleared: number
       memo: string | null
       transfer_account_id: string | null
+      transfer_id: string | null
     }>('SELECT * FROM transactions WHERE id = ?', [id])
     return row
       ? {
@@ -433,6 +434,7 @@ export class SqliteStore implements Store {
           cleared: row.cleared === 1,
           memo: row.memo,
           transferAccountId: row.transfer_account_id,
+          transferId: row.transfer_id,
         }
       : null
   }
@@ -462,6 +464,7 @@ export class SqliteStore implements Store {
       cleared: number
       memo: string | null
       transfer_account_id: string | null
+      transfer_id: string | null
     }>(query, params)
 
     return rows.map((r) => ({
@@ -474,6 +477,7 @@ export class SqliteStore implements Store {
       cleared: r.cleared === 1,
       memo: r.memo,
       transferAccountId: r.transfer_account_id,
+      transferId: r.transfer_id,
     }))
   }
 
@@ -506,6 +510,7 @@ export class SqliteStore implements Store {
       cleared: number
       memo: string | null
       transfer_account_id: string | null
+      transfer_id: string | null
     }>(query, params)
 
     return rows.map((r) => ({
@@ -518,14 +523,15 @@ export class SqliteStore implements Store {
       cleared: r.cleared === 1,
       memo: r.memo,
       transferAccountId: r.transfer_account_id,
+      transferId: r.transfer_id,
     }))
   }
 
   saveTransaction(transaction: Transaction): void {
     this.db.run(
       `INSERT OR REPLACE INTO transactions
-       (id, account_id, category_id, payee_id, date, amount, cleared, memo, transfer_account_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, account_id, category_id, payee_id, date, amount, cleared, memo, transfer_account_id, transfer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction.id,
         transaction.accountId,
@@ -536,6 +542,7 @@ export class SqliteStore implements Store {
         transaction.cleared ? 1 : 0,
         transaction.memo,
         transaction.transferAccountId,
+        transaction.transferId,
       ]
     )
   }

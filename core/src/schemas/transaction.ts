@@ -22,6 +22,13 @@ export interface Transaction {
   memo: string | null
   /** For transfers: the linked account ID */
   transferAccountId: string | null
+  /**
+   * For transfers: the id of the other leg.
+   * The only thing that pairs two legs - nothing is inferred from account, amount or
+   * date. Null on a leg whose partner was never recorded (rows written before the
+   * column existed), which every pair-changing operation refuses to act on.
+   */
+  transferId: string | null
 }
 
 /**
@@ -36,6 +43,7 @@ export function createTransaction(params: {
   cleared?: boolean
   memo?: string | null
   transferAccountId?: string | null
+  transferId?: string | null
 }): Transaction {
   return {
     id: crypto.randomUUID(),
@@ -47,6 +55,7 @@ export function createTransaction(params: {
     cleared: params.cleared ?? false,
     memo: params.memo ?? null,
     transferAccountId: params.transferAccountId ?? null,
+    transferId: params.transferId ?? null,
   }
 }
 

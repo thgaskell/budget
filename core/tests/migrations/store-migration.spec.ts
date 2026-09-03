@@ -65,7 +65,7 @@ describe('Store Migration Validation', () => {
         console.log(`  ✓ v${v.version}: ${v.description}`)
       }
 
-      expect(initialState.schemaVersion).toBe(1)
+      expect(initialState.schemaVersion).toBe(getLatestVersion(migrations))
       expect(initialState.budgetCount).toBe(2)
 
       // Export the database binary
@@ -94,7 +94,7 @@ describe('Store Migration Validation', () => {
       }
 
       // Verify data survived
-      expect(loadedState.schemaVersion).toBe(1)
+      expect(loadedState.schemaVersion).toBe(getLatestVersion(migrations))
       expect(loadedState.budgetCount).toBe(2)
 
       const budget1 = store2.getBudget('budget-001')
@@ -126,7 +126,7 @@ describe('Store Migration Validation', () => {
 
       expect(store.getSchemaVersion()).toBe(0)
       expect(store.needsMigration()).toBe(true)
-      expect(store.getPendingMigrations().length).toBe(1)
+      expect(store.getPendingMigrations().length).toBe(migrations.length)
 
       // Explicitly run migration
       console.log(`\n⚡ Calling store.migrate()...`)
@@ -143,7 +143,7 @@ describe('Store Migration Validation', () => {
         console.log(`   ✓ v${v.version}: ${v.description}`)
       }
 
-      expect(store.getSchemaVersion()).toBe(1)
+      expect(store.getSchemaVersion()).toBe(getLatestVersion(migrations))
       expect(store.needsMigration()).toBe(false)
 
       // Add some data
@@ -218,8 +218,8 @@ describe('Store Migration Validation', () => {
       console.log(`│ Tracks History  │ ${'Yes'.padEnd(15)} │ ${'No'.padEnd(15)} │`)
       console.log('└─────────────────┴─────────────────┴─────────────────┘')
 
-      expect(sqliteStore.getSchemaVersion()).toBe(1)
-      expect(memoryStore.getSchemaVersion()).toBe(1)
+      expect(sqliteStore.getSchemaVersion()).toBe(getLatestVersion(migrations))
+      expect(memoryStore.getSchemaVersion()).toBe(getLatestVersion(migrations))
 
       sqliteStore.close()
     })

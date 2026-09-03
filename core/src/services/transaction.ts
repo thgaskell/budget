@@ -109,6 +109,10 @@ export function createTransfer(
     transferAccountId: input.fromAccountId,
   })
 
+  // Each leg records the other's id, so the pair is never inferred later
+  fromTransaction.transferId = toTransaction.id
+  toTransaction.transferId = fromTransaction.id
+
   store.saveTransaction(fromTransaction)
   store.saveTransaction(toTransaction)
 
@@ -182,36 +186,19 @@ export function assertValidTransferPair(
 /**
  * Find the other leg of a transfer.
  *
- * A transfer pair is only recorded as `transferAccountId` on each side, so the
- * partner is identified by pointing back at this transaction's account. When several
- * candidates match, a mirrored amount wins over a bare account match, and the same
- * date wins over the nearest date.
+ * Each leg records its partner's id, so the pair is exactly the one a caller named -
+ * createTransfer or linkTransactions. Nothing is inferred from account, amount or
+ * date: two transfers of the same amount between the same accounts on the same day
+ * are indistinguishable that way, and guessing between them corrupts the pair that was
+ * not meant.
  *
- * Returns null when the transaction is not a transfer or has no resolvable partner.
+ * Returns null when the transaction is not a transfer, when its partner was never
+ * recorded (a row written before transferId existed), or when the partner row is gone.
  */
 export function findTransferPartner(store: Store, transaction: Transaction): Transaction | null {
-  if (!transaction.transferAccountId) return null
+  if (!transaction.transferId) return null
 
-  const candidates = store
-    .listTransactions(transaction.transferAccountId)
-    .filter((t) => t.id !== transaction.id && t.transferAccountId === transaction.accountId)
-
-  if (candidates.length === 0) return null
-
-  const mirrored = candidates.filter((t) => t.amount === -transaction.amount)
-  const pool = mirrored.length > 0 ? mirrored : candidates
-
-  const sameDate = pool.find((t) => t.date === transaction.date)
-  if (sameDate) return sameDate
-
-  // Legs recorded on different dates are only safe to pair when the amounts mirror
-  if (mirrored.length === 0) return null
-
-  const dayOf = (date: string) => new Date(`${date}T00:00:00Z`).getTime()
-  const target = dayOf(transaction.date)
-  return [...mirrored].sort(
-    (a, b) => Math.abs(dayOf(a.date) - target) - Math.abs(dayOf(b.date) - target)
-  )[0]
+  return store.getTransaction(transaction.transferId)
 }
 
 /**
@@ -260,13 +247,30 @@ export function linkTransactions(
 
   assertValidTransferPair(store, first, second)
 
-  const linkedFirst = { ...first, transferAccountId: second.accountId }
-  const linkedSecond = { ...second, transferAccountId: first.accountId }
+  const linkedFirst = { ...first, transferAccountId: second.accountId, transferId: second.id }
+  const linkedSecond = { ...second, transferAccountId: first.accountId, transferId: first.id }
 
   store.saveTransaction(linkedFirst)
   store.saveTransaction(linkedSecond)
 
   return { first: linkedFirst, second: linkedSecond }
+}
+
+/**
+ * The refusal used by every operation that would change a transfer pair when the leg
+ * it was given claims to be part of one but its partner cannot be resolved - the
+ * partner was never recorded (a row written before transferId existed) or it has since
+ * been deleted.
+ *
+ * Acting anyway would mean guessing which row the other leg is, which is exactly what
+ * this design removes, so the user is told how to name the pair themselves.
+ */
+function unresolvablePartner(transactionId: string): Error {
+  return new Error(
+    `Transaction is part of a transfer whose other leg is not recorded: ${transactionId}. ` +
+      `Run "tx unlink ${transactionId}" to clear this leg, then ` +
+      `"tx link ${transactionId} <otherId>" to link it to the right transaction.`
+  )
 }
 
 /**
@@ -286,12 +290,14 @@ export function unlinkTransaction(
 
   const partner = findTransferPartner(store, transaction)
 
-  const unlinked = { ...transaction, transferAccountId: null }
+  // A leg whose partner cannot be resolved is cleared on its own: there is no other
+  // row that is known to belong to this pair, and guessing at one is what this avoids
+  const unlinked = { ...transaction, transferAccountId: null, transferId: null }
   store.saveTransaction(unlinked)
 
   let unlinkedPartner: Transaction | null = null
   if (partner) {
-    unlinkedPartner = { ...partner, transferAccountId: null }
+    unlinkedPartner = { ...partner, transferAccountId: null, transferId: null }
     store.saveTransaction(unlinkedPartner)
   }
 
@@ -363,18 +369,17 @@ export function updateTransaction(
 
   const partner = findTransferPartner(store, transaction)
   if (!partner) {
-    throw new Error(
-      `Transaction is part of a transfer whose other leg cannot be found: ${transactionId}. ` +
-        'Unlink it first.'
-    )
+    throw unresolvablePartner(transactionId)
   }
 
   const updatedPartner: Transaction = {
     ...partner,
     ...(changes.amount !== undefined && { amount: -updated.amount }),
     transferAccountId: updated.accountId,
+    transferId: updated.id,
   }
   updated.transferAccountId = updatedPartner.accountId
+  updated.transferId = updatedPartner.id
 
   assertValidTransferPair(store, updated, updatedPartner)
 
@@ -385,15 +390,23 @@ export function updateTransaction(
 }
 
 /**
- * Delete a transaction.
- * If it's part of a transfer, also deletes the linked transaction.
+ * Delete a transaction, and with it the other leg of any transfer it belongs to - the
+ * two legs are one movement of money, so deleting one alone would leave a half
+ * transfer behind.
+ *
+ * Refused when the leg says it is part of a transfer but its partner cannot be
+ * resolved: deleting the wrong row is not recoverable, so the user is asked to say
+ * which rows the pair is made of.
  */
 export function deleteTransactionWithTransfer(store: Store, transactionId: string): void {
   const transaction = store.getTransaction(transactionId)
   if (!transaction) return
 
-  const partner = findTransferPartner(store, transaction)
-  if (partner) {
+  if (transaction.transferAccountId) {
+    const partner = findTransferPartner(store, transaction)
+    if (!partner) {
+      throw unresolvablePartner(transactionId)
+    }
     store.deleteTransaction(partner.id)
   }
 

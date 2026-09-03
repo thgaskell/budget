@@ -158,6 +158,39 @@ describe('MemoryStore', () => {
       expect(txns[2].date).toBe('2024-01-25')
     })
 
+    it('carries the recorded transfer partner through JSON export and import', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+
+      const outflow = createTransaction({
+        accountId: checking.id,
+        date: '2024-01-10',
+        amount: -5000,
+        transferAccountId: savings.id,
+      })
+      const inflow = createTransaction({
+        accountId: savings.id,
+        date: '2024-01-10',
+        amount: 5000,
+        transferAccountId: checking.id,
+        transferId: outflow.id,
+      })
+      outflow.transferId = inflow.id
+      store.saveTransaction(outflow)
+      store.saveTransaction(inflow)
+
+      const exported = JSON.parse(JSON.stringify(store.toJSON()))
+      const imported = new MemoryStore()
+      imported.fromJSON(exported)
+
+      expect(imported.getTransaction(outflow.id)?.transferId).toBe(inflow.id)
+      expect(imported.getTransaction(inflow.id)?.transferId).toBe(outflow.id)
+    })
+
     it('lists all transactions for a budget', () => {
       const budget = createBudget({ name: 'Test' })
       const account1 = createAccount({ budgetId: budget.id, name: 'A1', type: 'checking' })

@@ -309,6 +309,18 @@ Given(
   }
 )
 
+// Reproduce what rows migrated from schema v1 look like: still marked as transfers by
+// their transferAccountId, with no record of which row each one is paired with
+Given('no transfer partners are recorded in the database', function (this: TestWorld) {
+  for (const budget of this.budgets.values()) {
+    for (const transaction of this.store.listAllTransactions(budget.id)) {
+      if (transaction.transferId) {
+        this.store.saveTransaction({ ...transaction, transferId: null })
+      }
+    }
+  }
+})
+
 Given('I capture the last transaction ID', function (this: TestWorld) {
   this.capturedId = this.lastTransactionId
 })
