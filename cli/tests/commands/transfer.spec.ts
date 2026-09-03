@@ -10,6 +10,7 @@ import {
   createBudget,
   createCategory,
   createCategoryGroup,
+  getCategoryBalances,
   getReadyToAssign,
 } from '@budget/core'
 import { setStore, resetStore } from '../../src/store.ts'
@@ -285,6 +286,25 @@ describe('Transfer Commands', () => {
       expect(result.output).toContain('does not belong to the active budget')
     })
 
+    // A shared date is not evidence of a transfer; linking an unrelated pair used to
+    // hide the inflow from Ready to Assign
+    it('rejects a same-date pair whose amounts do not offset', async () => {
+      const mismatched = addTransaction(store, {
+        accountId: savingsId,
+        amount: 25000,
+        date: '2025-01-15',
+      })
+      const before = getReadyToAssign(store, budgetId, '2025-01')
+
+      const result = await run(`tx link ${outflowId} ${mismatched.id}`)
+
+      expect(result.exitCode).toBe(1)
+      expect(result.output).toContain('must offset exactly')
+      expect(store.getTransaction(outflowId)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(mismatched.id)?.transferAccountId).toBeNull()
+      expect(getReadyToAssign(store, budgetId, '2025-01')).toBe(before)
+    })
+
     it('rejects two outflows', async () => {
       const second = addTransaction(store, {
         accountId: savingsId,
@@ -324,6 +344,66 @@ describe('Transfer Commands', () => {
 
       expect(result.exitCode).toBe(1)
       expect(result.output).toContain('not part of a transfer')
+    })
+  })
+
+  describe('tx edit on a transfer leg', () => {
+    beforeEach(async () => {
+      await run('tx transfer --from Checking --to Savings --amount 500 --date 2025-01-15')
+    })
+
+    // Editing one leg used to leave the pair out of sync: $400 existed with no
+    // income recorded and nothing indicating a problem
+    it('keeps both legs in step when the amount changes', async () => {
+      const inflow = store.listTransactions(savingsId)[0]
+
+      const result = await run(`tx edit ${inflow.id} --amount 900`)
+
+      expect(result.exitCode).toBe(0)
+      expect(store.listTransactions(savingsId)[0].amount).toBe(90000)
+      expect(store.listTransactions(checkingId)[0].amount).toBe(-90000)
+      expect(getReadyToAssign(store, budgetId, '2025-01')).toBe(0)
+    })
+
+    // Categorising the inflow leg used to add $500 of spendable money to a category
+    it('refuses a category when both accounts are on-budget', async () => {
+      const inflow = store.listTransactions(savingsId)[0]
+
+      const result = await run(`tx edit ${inflow.id} --category Investing`)
+
+      expect(result.exitCode).toBe(1)
+      expect(result.output).toContain('exactly one account is off-budget')
+      expect(store.listTransactions(savingsId)[0].categoryId).toBeNull()
+      expect(getCategoryBalances(store, categoryId, '2025-01').activity).toBe(0)
+      expect(getCategoryBalances(store, categoryId, '2025-01').available).toBe(0)
+    })
+
+    // Moving a leg used to leave a stale transfer label and orphan the partner on delete
+    it('repoints the other leg when a leg moves to another account', async () => {
+      const outflow = store.listTransactions(checkingId)[0]
+
+      const result = await run(`tx edit ${outflow.id} --account Visa`)
+
+      expect(result.exitCode).toBe(0)
+      expect(store.listTransactions(visaId)[0].transferAccountId).toBe(savingsId)
+      expect(store.listTransactions(savingsId)[0].transferAccountId).toBe(visaId)
+
+      await run(`tx delete ${outflow.id}`)
+
+      expect(store.listTransactions(visaId)).toHaveLength(0)
+      expect(store.listTransactions(savingsId)).toHaveLength(0)
+    })
+
+    it('still allows edits that cannot break the pair', async () => {
+      const inflow = store.listTransactions(savingsId)[0]
+
+      const result = await run(`tx edit ${inflow.id} --memo Payday`)
+
+      expect(result.exitCode).toBe(0)
+      expect(result.output).toBe('Transaction updated')
+      expect(store.listTransactions(savingsId)[0].memo).toBe('Payday')
+      expect(store.listTransactions(savingsId)[0].amount).toBe(50000)
+      expect(store.listTransactions(checkingId)[0].amount).toBe(-50000)
     })
   })
 

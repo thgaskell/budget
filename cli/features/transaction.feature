@@ -126,6 +126,42 @@ Feature: Transaction Management
     And I run "budget available"
     And the output should contain "$500.00"
 
+  Scenario: Editing one leg of a transfer keeps both legs in step
+    Given an account named "Savings" of type "savings" exists
+    And a transaction of $3000 in "Checking" from "Employer"
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx edit <captured-id> --amount 900"
+    Then the command should succeed
+    And I run "budget tx list"
+    And the output should contain "-$900.00"
+    And I run "budget account list"
+    And the output should contain "$2,100.00"
+    And I run "budget available"
+    And the output should contain "$3,000.00"
+
+  Scenario: Categorising the inflow leg of an on-budget transfer is refused
+    Given an account named "Savings" of type "savings" exists
+    And a category group named "Expenses" exists
+    And a category named "Groceries" in group "Expenses" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx edit <captured-id> --category 'Groceries'"
+    Then the command should fail
+    And the output should contain "exactly one account is off-budget"
+
+  Scenario: Linking two transactions that do not offset is refused
+    Given an account named "Savings" of type "savings" exists
+    And a transaction of -$100 in "Checking" from "Outflow"
+    And I capture the last transaction ID as "outflow"
+    And a transaction of $250 in "Savings" from "Income"
+    And I capture the last transaction ID as "inflow"
+    When I run "budget tx link <id:outflow> <id:inflow>"
+    Then the command should fail
+    And the output should contain "must offset exactly"
+    When I run "budget available"
+    Then the output should contain "$250.00"
+
   Scenario: JSON output includes the transfer link
     Given an account named "Savings" of type "savings" exists
     And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"

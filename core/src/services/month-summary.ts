@@ -8,7 +8,26 @@ import {
   type MonthSummary,
 } from '../schemas/month-summary.ts'
 import type { Assignment } from '../schemas/assignment.ts'
-import { countsAsIncome } from './transaction.ts'
+import type { Transaction } from '../schemas/transaction.ts'
+import { countsAsCategoryActivity, countsAsIncome } from './transaction.ts'
+
+/**
+ * Sum each category's activity for a set of transactions, in one pass.
+ *
+ * Transfer legs that only move money already inside the budget are skipped; see
+ * countsAsCategoryActivity.
+ */
+function sumActivityByCategory(store: Store, transactions: Transaction[]): Map<string, number> {
+  const totals = new Map<string, number>()
+
+  for (const txn of transactions) {
+    if (!txn.categoryId) continue
+    if (!countsAsCategoryActivity(store, txn)) continue
+    totals.set(txn.categoryId, (totals.get(txn.categoryId) ?? 0) + txn.amount)
+  }
+
+  return totals
+}
 
 /**
  * Calculate the month summary for a specific month.
@@ -70,6 +89,8 @@ export function calculateMonthSummary(
     to: monthEnd,
   })
 
+  const activityByCategory = sumActivityByCategory(store, allTransactions)
+
   const categoryBalances: Record<string, number> = {}
 
   for (const category of categories) {
@@ -81,12 +102,7 @@ export function calculateMonthSummary(
     const monthAssigned = assignment?.amount ?? 0
 
     // This month's activity (spending/income in this category)
-    let monthActivity = 0
-    for (const txn of allTransactions) {
-      if (txn.categoryId === category.id) {
-        monthActivity += txn.amount
-      }
-    }
+    const monthActivity = activityByCategory.get(category.id) ?? 0
 
     // Closing balance = opening + assigned + activity
     categoryBalances[category.id] = openingBalance + monthAssigned + monthActivity
@@ -325,6 +341,7 @@ export function getMonthData(
   }
 
   let monthAssignments = 0
+  const activityByCategory = sumActivityByCategory(store, allTransactions)
   const categoryData: MonthData['categoryData'] = {}
 
   for (const category of categories) {
@@ -333,12 +350,7 @@ export function getMonthData(
     const assigned = assignment?.amount ?? 0
     monthAssignments += assigned
 
-    let activity = 0
-    for (const txn of allTransactions) {
-      if (txn.categoryId === category.id) {
-        activity += txn.amount
-      }
-    }
+    const activity = activityByCategory.get(category.id) ?? 0
 
     categoryData[category.id] = {
       openingBalance,

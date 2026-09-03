@@ -10,15 +10,22 @@ export {
 export { getReadyToAssign } from './ready-to-assign.ts'
 
 // Transaction handling
-export type { CreateTransactionInput, CreateTransferInput } from './transaction.ts'
+export type {
+  CreateTransactionInput,
+  CreateTransferInput,
+  UpdateTransactionInput,
+} from './transaction.ts'
 export {
   addTransaction,
   createTransfer,
+  assertValidTransferPair,
   findTransferPartner,
   linkTransactions,
   unlinkTransaction,
+  updateTransaction,
   deleteTransactionWithTransfer,
   countsAsIncome,
+  countsAsCategoryActivity,
   setTransactionCleared,
   reassignTransaction,
 } from './transaction.ts'

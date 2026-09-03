@@ -1,5 +1,29 @@
 import type { Store } from '../stores/types.ts'
+import type { Transaction } from '../schemas/transaction.ts'
 import { getMonthEnd } from '../schemas/month-summary.ts'
+import { countsAsCategoryActivity } from './transaction.ts'
+
+/**
+ * Sum the activity a category picks up from a set of transactions.
+ *
+ * Transfer legs that only move money already inside the budget are skipped; see
+ * countsAsCategoryActivity.
+ */
+function sumCategoryActivity(
+  store: Store,
+  transactions: Transaction[],
+  categoryId: string
+): number {
+  let activity = 0
+
+  for (const txn of transactions) {
+    if (txn.categoryId !== categoryId) continue
+    if (!countsAsCategoryActivity(store, txn)) continue
+    activity += txn.amount
+  }
+
+  return activity
+}
 
 /**
  * Account balance breakdown.
@@ -88,12 +112,7 @@ export function getCategoryBalances(
   })
 
   // Sum activity for this category (this month only)
-  let activity = 0
-  for (const txn of allTransactions) {
-    if (txn.categoryId === categoryId) {
-      activity += txn.amount
-    }
-  }
+  const activity = sumCategoryActivity(store, allTransactions, categoryId)
 
   // Calculate cumulative available (includes carryover from all prior months)
   const available = getCumulativeCategoryAvailable(store, categoryId, month)
@@ -125,12 +144,7 @@ export function getCumulativeCategoryAvailable(
   const allTransactions = store.listAllTransactions(group.budgetId, { to: monthEnd })
 
   // Sum all activity for this category
-  let totalActivity = 0
-  for (const txn of allTransactions) {
-    if (txn.categoryId === categoryId) {
-      totalActivity += txn.amount
-    }
-  }
+  const totalActivity = sumCategoryActivity(store, allTransactions, categoryId)
 
   // Sum all assignments up through this month
   // This is a simplified approach - in production you'd want to track months more explicitly

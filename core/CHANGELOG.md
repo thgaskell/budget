@@ -5,6 +5,25 @@
 ### Fixed
 
 - TypeScript control flow analysis error in migration runner catch block
+- **Category activity no longer counts money that never entered the budget** - the
+  per-category activity loops in `calculateMonthSummary()`, `getMonthData()`,
+  `getCategoryBalances()` and `getCumulativeCategoryAvailable()` summed every
+  transaction carrying the category, including the inflow leg of a transfer between two
+  on-budget accounts. That leg is excluded from Ready to Assign, so counting it as
+  activity created spendable money out of nothing: a categorised $500 transfer leg
+  raised the category's available from $200 to $700. All four now go through the new
+  `countsAsCategoryActivity()`, which repairs the figures for databases that already
+  hold such a row. Outflows still count, including the categorised leg of a transfer to
+  an off-budget account
+- **`linkTransactions()` requires legs that offset exactly** - the guard only rejected a
+  pair when the dates differed *and* the amounts did not offset, so any same-date pair
+  was accepted however mismatched. Linking a -$100 outflow to an unrelated $250 inflow
+  was allowed and dropped Ready to Assign from $250.00 to $0.00, hiding $150 of genuine
+  income. Dates may still differ - bank exports date the two sides apart - but the
+  amounts must mirror
+- **`reassignTransaction()` cannot categorise a transfer into an invalid state** - it
+  now goes through `updateTransaction()`, so it enforces the same category rule as
+  `createTransfer()`
 - **Transfers no longer count as income** - Ready to Assign included the inflow leg of
   a transfer between two on-budget accounts, inflating it by the full amount of every
   transfer. Moving $500 from checking to savings added $500 of income that did not
@@ -22,6 +41,17 @@
   on offsetting amounts across different dates, since bank exports routinely date the
   two sides a day or two apart
 - **`countsAsIncome()`** - Single rule for whether an inflow reaches Ready to Assign
+- **`updateTransaction()`** - Transfer-aware edit path. A new amount is mirrored onto
+  the other leg and moving a leg to another account repoints its partner, so an edit
+  cannot leave a pair half-changed. Edits that cannot break the pair (payee, memo,
+  cleared, date) leave the partner alone; a pair-changing edit on a leg whose partner
+  cannot be resolved is refused rather than applied
+- **`assertValidTransferPair()`** - The one rule every transfer pair satisfies, shared
+  by `createTransfer()`, `linkTransactions()` and `updateTransaction()`: different
+  accounts in the same budget, amounts that offset exactly, and a category only on the
+  on-budget leg of a transfer that crosses the budget boundary
+- **`countsAsCategoryActivity()`** - Single rule for whether a transaction moves its
+  category's activity
 - `createTransfer()` accepts an optional `categoryId` for the on-budget leg, and rejects
   a transfer where source and destination are the same account
 - **Database Migrations** - TypeScript migration system with zod validation

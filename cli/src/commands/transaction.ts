@@ -8,7 +8,9 @@ import {
   formatCurrency,
   linkTransactions,
   unlinkTransaction,
+  updateTransaction,
   type Transaction,
+  type UpdateTransactionInput,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
 import { requireActiveBudgetId } from '../config.ts'
@@ -485,34 +487,27 @@ export function registerTransactionCommands(program: Command): void {
           const budgetId = requireActiveBudgetId()
           const store = getStore()
 
-          const transaction = store.getTransaction(id)
-          if (!transaction) {
-            throw new Error(`Transaction not found: ${id}`)
-          }
+          const transaction = requireTransactionInBudget(store, budgetId, id)
 
-          const account = store.getAccount(transaction.accountId)
-          if (account?.budgetId !== budgetId) {
-            throw new Error('Transaction does not belong to the active budget.')
-          }
-
-          // Apply updates
-          const updated = { ...transaction }
+          // Collect the requested changes; the service applies them and keeps both
+          // legs of a transfer in step
+          const changes: UpdateTransactionInput = {}
 
           if (opts.account !== undefined) {
             const newAccount = findAccount(store, budgetId, opts.account)
             if (!newAccount) {
               throw new Error(`Account not found: ${opts.account}`)
             }
-            updated.accountId = newAccount.id
+            changes.accountId = newAccount.id
           }
 
           if (opts.amount !== undefined) {
-            updated.amount = parseAmount(opts.amount)
+            changes.amount = parseAmount(opts.amount)
           }
 
           if (opts.payee !== undefined) {
             const payee = findOrCreatePayee(store, budgetId, opts.payee)
-            updated.payeeId = payee.id
+            changes.payeeId = payee.id
           }
 
           if (opts.category !== undefined) {
@@ -520,25 +515,31 @@ export function registerTransactionCommands(program: Command): void {
             if (!category) {
               throw new Error(`Category not found: ${opts.category}`)
             }
-            updated.categoryId = category.id
+            changes.categoryId = category.id
           }
 
           if (opts.date !== undefined) {
-            updated.date = parseDate(opts.date)
+            changes.date = parseDate(opts.date)
           }
 
           if (opts.memo !== undefined) {
-            updated.memo = opts.memo || null
+            changes.memo = opts.memo || null
           }
 
           if (opts.cleared !== undefined) {
-            updated.cleared = opts.cleared
+            changes.cleared = opts.cleared
           }
 
-          store.saveTransaction(updated)
+          const result = updateTransaction(store, transaction.id, changes)
           saveStore()
 
-          outputSuccess('Transaction updated', options, updated)
+          outputSuccess(
+            result.partner
+              ? 'Transaction updated, along with the other leg of its transfer'
+              : 'Transaction updated',
+            options,
+            result.transaction
+          )
         } catch (error) {
           outputError(error as Error, options)
         }

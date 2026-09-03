@@ -16,6 +16,21 @@
   - `budget tx unlink <id>` clears the link on both sides, leaving the rows intact
   - `--json` output exposes `transferAccountId`
 
+### Fixed
+
+- **`tx edit` no longer corrupts a transfer** - it applied `--amount`, `--account` and
+  `--category` to a linked leg with no awareness of its partner. Editing one leg of a
+  $500 transfer to $900 left the other at -$500, so $400 existed with no income
+  recorded and Ready to Assign stayed $0.00; `--account` left a stale transfer label
+  whose partner a later `tx delete` then silently orphaned; `--category` on an
+  on-budget-to-on-budget leg added $500 of spendable money to a category that no income
+  ever entered. `tx edit` now goes through `updateTransaction()`: the other leg follows
+  a new amount or account, and an edit that would break the pair - a category where
+  both accounts are on-budget, a zero amount - is refused with the reason
+- **`tx link` requires the two legs to offset exactly** - a same-date pair was accepted
+  however mismatched, so linking -$100 to an unrelated $250 inflow hid $150 of real
+  income from Ready to Assign
+
 ### Changed
 
 - **Auto-migrate on Load** - CLI now uses `createUnmigrated()` and auto-migrates old databases with user notification (shows version transition and migration descriptions)

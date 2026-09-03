@@ -116,6 +116,70 @@ export function createTransfer(
 }
 
 /**
+ * Assert that two transactions can stand as the two legs of one transfer.
+ *
+ * A transfer is a single movement of money seen from both ends, so the pair has to
+ * hold together: two different accounts in the same budget, amounts that offset
+ * exactly, and a category only where the money really crosses the budget boundary
+ * (exactly one account off-budget), carried by the on-budget leg.
+ *
+ * Every path that creates or changes a pair - createTransfer, linkTransactions,
+ * updateTransaction - checks the same rule here, so a pair cannot be edited into a
+ * state it could never have been created in.
+ *
+ * Throws naming the broken rule; returns normally when the pair is sound.
+ */
+export function assertValidTransferPair(
+  store: Store,
+  first: Transaction,
+  second: Transaction
+): void {
+  if (first.id === second.id) {
+    throw new Error('A transfer needs two different transactions')
+  }
+  if (first.accountId === second.accountId) {
+    throw new Error('The two legs of a transfer must be in different accounts')
+  }
+
+  const firstAccount = store.getAccount(first.accountId)
+  const secondAccount = store.getAccount(second.accountId)
+  if (!firstAccount || !secondAccount) {
+    throw new Error('Invalid account ID')
+  }
+  if (firstAccount.budgetId !== secondAccount.budgetId) {
+    throw new Error('The two legs of a transfer must belong to the same budget')
+  }
+
+  const isOutflowInflowPair =
+    (first.amount < 0 && second.amount > 0) || (first.amount > 0 && second.amount < 0)
+  if (!isOutflowInflowPair) {
+    throw new Error('A transfer needs one outflow and one inflow')
+  }
+
+  // The same money leaving one account and arriving in the other: a shared date is
+  // not evidence of that, only offsetting amounts are
+  if (first.amount !== -second.amount) {
+    throw new Error("A transfer's two legs must offset exactly")
+  }
+
+  const crossesBudgetBoundary = firstAccount.onBudget !== secondAccount.onBudget
+  for (const [leg, legAccount] of [
+    [first, firstAccount],
+    [second, secondAccount],
+  ] as const) {
+    if (!leg.categoryId) continue
+    if (!crossesBudgetBoundary) {
+      throw new Error(
+        'A category can only be set on a transfer where exactly one account is off-budget'
+      )
+    }
+    if (!legAccount.onBudget) {
+      throw new Error('Only the on-budget leg of a transfer can carry a category')
+    }
+  }
+}
+
+/**
  * Find the other leg of a transfer.
  *
  * A transfer pair is only recorded as `transferAccountId` on each side, so the
@@ -155,8 +219,7 @@ export function findTransferPartner(store: Store, transaction: Transaction): Tra
  *
  * Importers only discover a pair after both rows exist, so the pair has to be
  * linkable after the fact. The two legs must live in different accounts of the same
- * budget, be an outflow and an inflow, and be resolvable as partners afterwards -
- * which means sharing a date or mirroring each other's amount.
+ * budget and satisfy the transfer invariant - see assertValidTransferPair.
  *
  * Returns both updated transactions.
  */
@@ -195,17 +258,7 @@ export function linkTransactions(
     }
   }
 
-  const isOutflowInflowPair =
-    (first.amount < 0 && second.amount > 0) || (first.amount > 0 && second.amount < 0)
-  if (!isOutflowInflowPair) {
-    throw new Error('A transfer needs one outflow and one inflow')
-  }
-
-  if (first.date !== second.date && first.amount !== -second.amount) {
-    throw new Error(
-      'Cannot link transactions with different dates and amounts that do not offset'
-    )
-  }
+  assertValidTransferPair(store, first, second)
 
   const linkedFirst = { ...first, transferAccountId: second.accountId }
   const linkedSecond = { ...second, transferAccountId: first.accountId }
@@ -246,6 +299,92 @@ export function unlinkTransaction(
 }
 
 /**
+ * Fields that can be changed on an existing transaction. Omitted fields are left
+ * untouched; `null` clears a nullable field.
+ */
+export interface UpdateTransactionInput {
+  accountId?: string
+  amount?: number
+  date?: string
+  categoryId?: string | null
+  payeeId?: string | null
+  memo?: string | null
+  cleared?: boolean
+}
+
+/**
+ * Update a transaction, keeping any transfer it belongs to intact.
+ *
+ * A transfer's two legs are one movement of money, so an edit to one of them is an
+ * edit to both: a new amount is mirrored onto the other leg, and moving a leg to
+ * another account repoints its partner at the new account. The resulting pair is
+ * checked against the same invariant that createTransfer and linkTransactions use,
+ * so an edit can never leave the pair in a state the service would refuse to create -
+ * a category on an on-budget-to-on-budget transfer, for instance.
+ *
+ * Edits that cannot break the pair (payee, memo, cleared, date) never touch the
+ * partner. Pair-changing edits are refused outright when the partner cannot be
+ * resolved, since there is nothing left to keep in step; unlink the leg first.
+ *
+ * Returns the updated transaction and its partner (null when it is not a transfer).
+ */
+export function updateTransaction(
+  store: Store,
+  transactionId: string,
+  changes: UpdateTransactionInput
+): { transaction: Transaction; partner: Transaction | null } {
+  const transaction = store.getTransaction(transactionId)
+  if (!transaction) throw new Error(`Transaction not found: ${transactionId}`)
+
+  const updated: Transaction = {
+    ...transaction,
+    ...(changes.accountId !== undefined && { accountId: changes.accountId }),
+    ...(changes.amount !== undefined && { amount: changes.amount }),
+    ...(changes.date !== undefined && { date: changes.date }),
+    ...(changes.categoryId !== undefined && { categoryId: changes.categoryId }),
+    ...(changes.payeeId !== undefined && { payeeId: changes.payeeId }),
+    ...(changes.memo !== undefined && { memo: changes.memo }),
+    ...(changes.cleared !== undefined && { cleared: changes.cleared }),
+  }
+
+  if (changes.accountId !== undefined && !store.getAccount(changes.accountId)) {
+    throw new Error('Invalid account ID')
+  }
+
+  const affectsPair =
+    changes.accountId !== undefined ||
+    changes.amount !== undefined ||
+    changes.categoryId !== undefined
+
+  if (!transaction.transferAccountId || !affectsPair) {
+    store.saveTransaction(updated)
+    return { transaction: updated, partner: null }
+  }
+
+  const partner = findTransferPartner(store, transaction)
+  if (!partner) {
+    throw new Error(
+      `Transaction is part of a transfer whose other leg cannot be found: ${transactionId}. ` +
+        'Unlink it first.'
+    )
+  }
+
+  const updatedPartner: Transaction = {
+    ...partner,
+    ...(changes.amount !== undefined && { amount: -updated.amount }),
+    transferAccountId: updated.accountId,
+  }
+  updated.transferAccountId = updatedPartner.accountId
+
+  assertValidTransferPair(store, updated, updatedPartner)
+
+  store.saveTransaction(updated)
+  store.saveTransaction(updatedPartner)
+
+  return { transaction: updated, partner: updatedPartner }
+}
+
+/**
  * Delete a transaction.
  * If it's part of a transfer, also deletes the linked transaction.
  */
@@ -278,6 +417,22 @@ export function countsAsIncome(store: Store, transaction: Transaction): boolean 
 }
 
 /**
+ * Whether a transaction should move its category's activity.
+ *
+ * The receiving leg of a transfer between two on-budget accounts is not new money -
+ * it is money that is already in the budget arriving somewhere else. It is kept out
+ * of Ready to Assign by countsAsIncome, so counting it as category activity as well
+ * would conjure spendable money out of nothing.
+ *
+ * Outflows always count, including the categorised leg of a transfer to an
+ * off-budget account: that money really is leaving the budget.
+ */
+export function countsAsCategoryActivity(store: Store, transaction: Transaction): boolean {
+  if (transaction.amount <= 0) return true
+  return countsAsIncome(store, transaction)
+}
+
+/**
  * Update a transaction's cleared status.
  */
 export function setTransactionCleared(
@@ -295,16 +450,16 @@ export function setTransactionCleared(
 
 /**
  * Reassign a transaction to a different category.
+ *
+ * Goes through updateTransaction, so a transfer leg cannot be categorised into a
+ * state createTransfer would refuse.
  */
 export function reassignTransaction(
   store: Store,
   transactionId: string,
   categoryId: string | null
 ): Transaction | null {
-  const transaction = store.getTransaction(transactionId)
-  if (!transaction) return null
+  if (!store.getTransaction(transactionId)) return null
 
-  const updated = { ...transaction, categoryId }
-  store.saveTransaction(updated)
-  return updated
+  return updateTransaction(store, transactionId, { categoryId }).transaction
 }

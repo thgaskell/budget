@@ -605,6 +605,67 @@ describe('month-summary service', () => {
       expect(summary.closingRTA).toBe(300000)
     })
 
+    // A transfer leg that carries a category is excluded from Ready to Assign, so
+    // counting it as category activity conjures spendable money out of nothing
+    it('keeps a categorised on-budget transfer leg out of category activity', () => {
+      const savings = createAccount({ budgetId, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      store.saveAssignment(
+        createAssignment({ categoryId, month: '2025-01', amount: 20000 })
+      )
+
+      const { to } = createTransfer(store, {
+        fromAccountId: accountId,
+        toAccountId: savings.id,
+        amount: 50000,
+        date: '2025-01-15',
+      })
+      // A database written before the guard existed can hold a categorised inflow leg
+      store.saveTransaction({ ...to, categoryId })
+
+      const summary = calculateMonthSummary(store, budgetId, '2025-01', null)
+
+      expect(summary.categoryBalances[categoryId]).toBe(20000)
+    })
+
+    it('keeps a categorised on-budget transfer leg out of getMonthData activity', () => {
+      const savings = createAccount({ budgetId, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { to } = createTransfer(store, {
+        fromAccountId: accountId,
+        toAccountId: savings.id,
+        amount: 50000,
+        date: '2025-01-15',
+      })
+      store.saveTransaction({ ...to, categoryId })
+
+      const data = getMonthData(store, budgetId, '2025-01')
+
+      expect(data.categoryData[categoryId].activity).toBe(0)
+      expect(data.categoryData[categoryId].closingBalance).toBe(0)
+    })
+
+    it('still counts the categorised leg of an off-budget transfer as activity', () => {
+      const brokerage = createAccount({ budgetId, name: 'Brokerage', type: 'tracking' })
+      store.saveAccount(brokerage)
+
+      createTransfer(store, {
+        fromAccountId: accountId,
+        toAccountId: brokerage.id,
+        amount: 30000,
+        date: '2025-01-15',
+        categoryId,
+      })
+
+      const summary = calculateMonthSummary(store, budgetId, '2025-01', null)
+      const data = getMonthData(store, budgetId, '2025-01')
+
+      expect(summary.categoryBalances[categoryId]).toBe(-30000)
+      expect(data.categoryData[categoryId].activity).toBe(-30000)
+    })
+
     it('keeps a transfer out of getMonthData inflows', () => {
       const savings = createAccount({ budgetId, name: 'Savings', type: 'savings' })
       store.saveAccount(savings)

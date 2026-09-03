@@ -225,6 +225,88 @@ describe.each([
       expect(balances.activity).toBe(-25000) // -$250 spent
     })
 
+    // The receiving leg of an on-budget transfer is money that is already in the
+    // budget; counting it as activity invents spendable money
+    it('excludes the categorised inflow leg of an on-budget transfer from activity', () => {
+      const budget = createBudget({ name: 'Test' })
+      const group = createCategoryGroup({ budgetId: budget.id, name: 'Needs' })
+      const category = createCategory({ groupId: group.id, name: 'Groceries' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      const assignment = createAssignment({
+        categoryId: category.id,
+        month: '2024-01',
+        amount: 20000,
+      })
+
+      store.saveBudget(budget)
+      store.saveCategoryGroup(group)
+      store.saveCategory(category)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+      store.saveAssignment(assignment)
+
+      store.saveTransaction(
+        createTransaction({
+          accountId: checking.id,
+          date: '2024-01-10',
+          amount: -50000,
+          transferAccountId: savings.id,
+        })
+      )
+      store.saveTransaction(
+        createTransaction({
+          accountId: savings.id,
+          date: '2024-01-10',
+          amount: 50000,
+          categoryId: category.id,
+          transferAccountId: checking.id,
+        })
+      )
+
+      const balances = getCategoryBalances(store, category.id, '2024-01')
+
+      expect(balances.activity).toBe(0)
+      expect(balances.available).toBe(20000)
+    })
+
+    it('still counts the on-budget leg of an off-budget transfer as activity', () => {
+      const budget = createBudget({ name: 'Test' })
+      const group = createCategoryGroup({ budgetId: budget.id, name: 'Needs' })
+      const category = createCategory({ groupId: group.id, name: 'Investing' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const brokerage = createAccount({ budgetId: budget.id, name: 'Brokerage', type: 'tracking' })
+
+      store.saveBudget(budget)
+      store.saveCategoryGroup(group)
+      store.saveCategory(category)
+      store.saveAccount(checking)
+      store.saveAccount(brokerage)
+
+      store.saveTransaction(
+        createTransaction({
+          accountId: checking.id,
+          date: '2024-01-10',
+          amount: -30000,
+          categoryId: category.id,
+          transferAccountId: brokerage.id,
+        })
+      )
+      store.saveTransaction(
+        createTransaction({
+          accountId: brokerage.id,
+          date: '2024-01-10',
+          amount: 30000,
+          transferAccountId: checking.id,
+        })
+      )
+
+      const balances = getCategoryBalances(store, category.id, '2024-01')
+
+      expect(balances.activity).toBe(-30000)
+      expect(balances.available).toBe(-30000)
+    })
+
     it('calculates available as assigned + activity', () => {
       const budget = createBudget({ name: 'Test' })
       const group = createCategoryGroup({ budgetId: budget.id, name: 'Needs' })

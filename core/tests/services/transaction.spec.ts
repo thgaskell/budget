@@ -16,6 +16,7 @@ import {
   setTransactionCleared,
   reassignTransaction,
   unlinkTransaction,
+  updateTransaction,
 } from '../../src/services/transaction.ts'
 
 describe.each([
@@ -271,6 +272,23 @@ describe.each([
 
       expect(result).toBeNull()
     })
+
+    it('refuses to categorise a transfer between two on-budget accounts', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 50000,
+        date: '2024-01-15',
+      })
+
+      expect(() => reassignTransaction(store, to.id, category.id)).toThrow(
+        'exactly one account is off-budget'
+      )
+      expect(store.getTransaction(to.id)?.categoryId).toBeNull()
+    })
   })
 
   describe('findTransferPartner', () => {
@@ -445,7 +463,7 @@ describe.each([
       )
     })
 
-    it('throws when the legs share neither a date nor offsetting amounts', () => {
+    it('throws when the legs do not offset each other', () => {
       const outflow = addTransaction(store, {
         accountId: account.id,
         amount: -10000,
@@ -458,8 +476,29 @@ describe.each([
       })
 
       expect(() => linkTransactions(store, outflow.id, inflow.id)).toThrow(
-        'Cannot link transactions with different dates'
+        'must offset exactly'
       )
+    })
+
+    // A shared date is not evidence of a transfer: linking an unrelated same-date pair
+    // used to be accepted, which hid the inflow from Ready to Assign
+    it('throws when a same-date pair does not offset', () => {
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-06-01',
+      })
+      const inflow = addTransaction(store, {
+        accountId: savings.id,
+        amount: 25000,
+        date: '2024-06-01',
+      })
+
+      expect(() => linkTransactions(store, outflow.id, inflow.id)).toThrow(
+        'must offset exactly'
+      )
+      expect(store.getTransaction(outflow.id)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(inflow.id)?.transferAccountId).toBeNull()
     })
 
     it('throws when the transactions belong to different budgets', () => {
@@ -522,6 +561,146 @@ describe.each([
       expect(() => unlinkTransaction(store, 'non-existent')).toThrow(
         'Transaction not found: non-existent'
       )
+    })
+  })
+
+  describe('updateTransaction', () => {
+    let savings: ReturnType<typeof createAccount>
+    let brokerage: ReturnType<typeof createAccount>
+
+    beforeEach(() => {
+      savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      brokerage = createAccount({ budgetId: budget.id, name: 'Brokerage', type: 'tracking' })
+      store.saveAccount(savings)
+      store.saveAccount(brokerage)
+    })
+
+    function transfer() {
+      return createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 50000,
+        date: '2024-01-15',
+      })
+    }
+
+    it('updates a plain transaction', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: -5000,
+        date: '2024-01-15',
+      })
+
+      const result = updateTransaction(store, txn.id, {
+        amount: -7500,
+        categoryId: category.id,
+        memo: 'Corrected',
+      })
+
+      expect(result.partner).toBeNull()
+      expect(store.getTransaction(txn.id)?.amount).toBe(-7500)
+      expect(store.getTransaction(txn.id)?.categoryId).toBe(category.id)
+      expect(store.getTransaction(txn.id)?.memo).toBe('Corrected')
+    })
+
+    it('throws for a missing transaction', () => {
+      expect(() => updateTransaction(store, 'non-existent', { memo: 'x' })).toThrow(
+        'Transaction not found: non-existent'
+      )
+    })
+
+    // Editing one leg used to leave the pair inconsistent: money left one account
+    // and a different amount arrived in the other
+    it('mirrors an amount change onto the other leg', () => {
+      const { from, to } = transfer()
+
+      const result = updateTransaction(store, to.id, { amount: 90000 })
+
+      expect(result.transaction.amount).toBe(90000)
+      expect(result.partner?.amount).toBe(-90000)
+      expect(store.getTransaction(from.id)?.amount).toBe(-90000)
+      expect(store.getTransaction(to.id)?.amount).toBe(90000)
+    })
+
+    it('repoints the other leg when one leg moves to a different account', () => {
+      const { from, to } = transfer()
+      const cash = createAccount({ budgetId: budget.id, name: 'Cash', type: 'cash' })
+      store.saveAccount(cash)
+
+      updateTransaction(store, from.id, { accountId: cash.id })
+
+      const moved = store.getTransaction(from.id)!
+      expect(moved.accountId).toBe(cash.id)
+      expect(store.getTransaction(to.id)?.transferAccountId).toBe(cash.id)
+      expect(findTransferPartner(store, moved)?.id).toBe(to.id)
+    })
+
+    it('rejects a category on a transfer leg when both accounts are on-budget', () => {
+      const { to } = transfer()
+
+      expect(() => updateTransaction(store, to.id, { categoryId: category.id })).toThrow(
+        'exactly one account is off-budget'
+      )
+      expect(store.getTransaction(to.id)?.categoryId).toBeNull()
+    })
+
+    it('allows a category on the on-budget leg of an off-budget transfer', () => {
+      const { from } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: brokerage.id,
+        amount: 30000,
+        date: '2024-01-15',
+      })
+
+      const result = updateTransaction(store, from.id, { categoryId: category.id })
+
+      expect(result.transaction.categoryId).toBe(category.id)
+      expect(store.getTransaction(from.id)?.categoryId).toBe(category.id)
+    })
+
+    it('rejects a category on the off-budget leg of a transfer', () => {
+      const { to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: brokerage.id,
+        amount: 30000,
+        date: '2024-01-15',
+      })
+
+      expect(() => updateTransaction(store, to.id, { categoryId: category.id })).toThrow(
+        'on-budget leg'
+      )
+    })
+
+    it('rejects an amount of zero on a transfer leg', () => {
+      const { from } = transfer()
+
+      expect(() => updateTransaction(store, from.id, { amount: 0 })).toThrow(
+        'one outflow and one inflow'
+      )
+      expect(store.getTransaction(from.id)?.amount).toBe(-50000)
+    })
+
+    it('leaves the other leg alone for edits that cannot break the pair', () => {
+      const { from, to } = transfer()
+
+      updateTransaction(store, from.id, { memo: 'Payday', cleared: true, date: '2024-01-16' })
+
+      expect(store.getTransaction(from.id)?.memo).toBe('Payday')
+      expect(store.getTransaction(from.id)?.cleared).toBe(true)
+      expect(store.getTransaction(from.id)?.date).toBe('2024-01-16')
+      expect(store.getTransaction(to.id)?.memo).toBeNull()
+      expect(store.getTransaction(to.id)?.date).toBe('2024-01-15')
+      expect(findTransferPartner(store, store.getTransaction(from.id)!)?.id).toBe(to.id)
+    })
+
+    it('refuses a pair-changing edit when the other leg cannot be found', () => {
+      const { from, to } = transfer()
+      store.deleteTransaction(to.id)
+
+      expect(() => updateTransaction(store, from.id, { amount: -10000 })).toThrow(
+        'other leg'
+      )
+      expect(store.getTransaction(from.id)?.amount).toBe(-50000)
     })
   })
 
