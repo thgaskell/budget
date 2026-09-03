@@ -5,9 +5,25 @@
 ### Fixed
 
 - TypeScript control flow analysis error in migration runner catch block
+- **Transfers no longer count as income** - Ready to Assign included the inflow leg of
+  a transfer between two on-budget accounts, inflating it by the full amount of every
+  transfer. Moving $500 from checking to savings added $500 of income that did not
+  exist; a credit-card payment added the payment. `getReadyToAssign()` and both
+  month-summary inflow paths now exclude an inflow whose transfer counterpart is
+  on-budget, so cached summaries and live calculations agree.
+  - An inflow from an **off-budget** account still counts as income - that money is
+    entering the budget for the first time
 
 ### Added
 
+- **Transfer Linking** - `linkTransactions()` and `unlinkTransaction()` set and clear
+  `transferAccountId` on both legs of an existing pair
+- **`findTransferPartner()`** - Shared partner lookup, matching legs on the same date or
+  on offsetting amounts across different dates, since bank exports routinely date the
+  two sides a day or two apart
+- **`countsAsIncome()`** - Single rule for whether an inflow reaches Ready to Assign
+- `createTransfer()` accepts an optional `categoryId` for the on-budget leg, and rejects
+  a transfer where source and destination are the same account
 - **Database Migrations** - TypeScript migration system with zod validation
   - Sequential version validation (no gaps allowed)
   - Atomic transactions (all-or-nothing per migrate call)
