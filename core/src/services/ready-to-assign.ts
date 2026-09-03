@@ -1,10 +1,14 @@
 import type { Store } from '../stores/types.ts'
 import { getMonthEnd } from '../schemas/month-summary.ts'
+import { countsAsIncome } from './transaction.ts'
 
 /**
  * Calculate Ready to Assign (unassigned pool) for a budget.
  *
  * Ready to Assign = Sum of all inflows (income) - Sum of all category assigned amounts
+ *
+ * Inflows linked as a transfer from another on-budget account are not income and are
+ * excluded; see countsAsIncome.
  *
  * This represents money that hasn't been allocated to any category yet.
  * In zero-based budgeting, this should be zero.
@@ -31,8 +35,9 @@ export function getReadyToAssign(store: Store, budgetId: string, throughMonth: s
       if (txnYear < earliestYear) {
         earliestYear = txnYear
       }
-      // Only count inflows (positive amounts) - income
-      if (txn.amount > 0) {
+      // Only count inflows that are income - the receiving leg of a transfer between
+      // on-budget accounts is money that was already in the budget
+      if (countsAsIncome(store, txn)) {
         totalInflows += txn.amount
       }
     }

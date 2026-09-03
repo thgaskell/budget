@@ -14,7 +14,11 @@ export type { CreateTransactionInput, CreateTransferInput } from './transaction.
 export {
   addTransaction,
   createTransfer,
+  findTransferPartner,
+  linkTransactions,
+  unlinkTransaction,
   deleteTransactionWithTransfer,
+  countsAsIncome,
   setTransactionCleared,
   reassignTransaction,
 } from './transaction.ts'

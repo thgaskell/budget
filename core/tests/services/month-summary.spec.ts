@@ -15,6 +15,7 @@ import {
   getMonthData,
   getLastAssignmentsBeforeMonth,
 } from '../../src/services/month-summary.ts'
+import { createTransfer } from '../../src/services/transaction.ts'
 
 describe('month-summary service', () => {
   let store: MemoryStore
@@ -576,6 +577,48 @@ describe('month-summary service', () => {
       expect(result.size).toBe(1)
       expect(result.get(categoryId)?.month).toBe('2024-01')
       expect(result.get(categoryId)?.amount).toBe(40000)
+    })
+  })
+
+  describe('transfers', () => {
+    it('keeps a transfer between on-budget accounts out of the closing RTA', () => {
+      const savings = createAccount({ budgetId, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      store.saveTransaction(
+        createTransaction({
+          accountId,
+          date: '2025-01-01',
+          amount: 300000, // $3000 paycheck
+        })
+      )
+
+      createTransfer(store, {
+        fromAccountId: accountId,
+        toAccountId: savings.id,
+        amount: 50000, // $500 moved into savings
+        date: '2025-01-15',
+      })
+
+      const summary = calculateMonthSummary(store, budgetId, '2025-01', null)
+
+      expect(summary.closingRTA).toBe(300000)
+    })
+
+    it('keeps a transfer out of getMonthData inflows', () => {
+      const savings = createAccount({ budgetId, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      createTransfer(store, {
+        fromAccountId: accountId,
+        toAccountId: savings.id,
+        amount: 50000,
+        date: '2025-01-15',
+      })
+
+      const data = getMonthData(store, budgetId, '2025-01')
+
+      expect(data.closingRTA).toBe(0)
     })
   })
 })

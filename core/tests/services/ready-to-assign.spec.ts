@@ -9,6 +9,7 @@ import { createCategory } from '../../src/schemas/category.ts'
 import { createTransaction } from '../../src/schemas/transaction.ts'
 import { createAssignment } from '../../src/schemas/assignment.ts'
 import { getReadyToAssign } from '../../src/services/ready-to-assign.ts'
+import { createTransfer, linkTransactions } from '../../src/services/transaction.ts'
 
 describe.each([
   ['MemoryStore', async () => new MemoryStore()],
@@ -314,5 +315,121 @@ describe.each([
 
     // RTA after groceries expense should STILL be $5500
     expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(550000)
+  })
+
+  describe('transfers', () => {
+    it('does not count a transfer between two on-budget accounts', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+
+      createTransfer(store, {
+        fromAccountId: checking.id,
+        toAccountId: savings.id,
+        amount: 50000, // $500
+        date: '2024-01-15',
+      })
+
+      expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(0)
+    })
+
+    it('does not count a credit card payment', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const visa = createAccount({ budgetId: budget.id, name: 'Visa', type: 'credit' })
+
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(visa)
+
+      createTransfer(store, {
+        fromAccountId: checking.id,
+        toAccountId: visa.id,
+        amount: 10000, // $100
+        date: '2024-01-15',
+      })
+
+      expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(0)
+    })
+
+    it('counts money transferred in from an off-budget account as income', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const brokerage = createAccount({ budgetId: budget.id, name: 'Brokerage', type: 'tracking' })
+
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(brokerage)
+
+      createTransfer(store, {
+        fromAccountId: brokerage.id,
+        toAccountId: checking.id,
+        amount: 40000, // $400 withdrawn into the budget
+        date: '2024-01-15',
+      })
+
+      expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(40000)
+    })
+
+    it('stops counting an inflow once it is linked as a transfer', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+
+      const outflow = createTransaction({
+        accountId: checking.id,
+        date: '2024-01-15',
+        amount: -50000,
+      })
+      const inflow = createTransaction({
+        accountId: savings.id,
+        date: '2024-01-15',
+        amount: 50000,
+      })
+      store.saveTransaction(outflow)
+      store.saveTransaction(inflow)
+
+      // Two unlinked rows: the inflow still reads as income
+      expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(50000)
+
+      linkTransactions(store, outflow.id, inflow.id)
+
+      expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(0)
+    })
+
+    it('still counts real income alongside a transfer', () => {
+      const budget = createBudget({ name: 'Test' })
+      const checking = createAccount({ budgetId: budget.id, name: 'Checking', type: 'checking' })
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+
+      store.saveBudget(budget)
+      store.saveAccount(checking)
+      store.saveAccount(savings)
+
+      store.saveTransaction(
+        createTransaction({
+          accountId: checking.id,
+          date: '2024-01-01',
+          amount: 300000, // $3000 paycheck
+        })
+      )
+
+      createTransfer(store, {
+        fromAccountId: checking.id,
+        toAccountId: savings.id,
+        amount: 50000,
+        date: '2024-01-15',
+      })
+
+      expect(getReadyToAssign(store, budget.id, '2024-01')).toBe(300000)
+    })
   })
 })

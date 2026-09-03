@@ -8,6 +8,7 @@ import {
   type MonthSummary,
 } from '../schemas/month-summary.ts'
 import type { Assignment } from '../schemas/assignment.ts'
+import { countsAsIncome } from './transaction.ts'
 
 /**
  * Calculate the month summary for a specific month.
@@ -41,7 +42,7 @@ export function calculateMonthSummary(
       to: monthEnd,
     })
     for (const txn of transactions) {
-      if (txn.amount > 0) {
+      if (countsAsIncome(store, txn)) {
         monthInflows += txn.amount
       }
     }
@@ -317,7 +318,7 @@ export function getMonthData(
       to: monthEnd,
     })
     for (const txn of transactions) {
-      if (txn.amount > 0) {
+      if (countsAsIncome(store, txn)) {
         monthInflows += txn.amount
       }
     }

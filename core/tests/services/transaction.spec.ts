@@ -8,9 +8,14 @@ import { createCategoryGroup } from '../../src/schemas/category-group.ts'
 import { createCategory } from '../../src/schemas/category.ts'
 import {
   addTransaction,
+  countsAsIncome,
   createTransfer,
+  deleteTransactionWithTransfer,
+  findTransferPartner,
+  linkTransactions,
   setTransactionCleared,
   reassignTransaction,
+  unlinkTransaction,
 } from '../../src/services/transaction.ts'
 
 describe.each([
@@ -151,6 +156,48 @@ describe.each([
       expect(to.memo).toBe('Monthly savings')
       expect(to.cleared).toBe(true)
     })
+
+    it('throws when transferring to the same account', () => {
+      expect(() =>
+        createTransfer(store, {
+          fromAccountId: account.id,
+          toAccountId: account.id,
+          amount: 10000,
+          date: '2024-01-15',
+        })
+      ).toThrow('Cannot transfer to the same account')
+    })
+
+    it('rejects a category on a transfer between two on-budget accounts', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      expect(() =>
+        createTransfer(store, {
+          fromAccountId: account.id,
+          toAccountId: savings.id,
+          amount: 10000,
+          date: '2024-01-15',
+          categoryId: category.id,
+        })
+      ).toThrow('exactly one account is off-budget')
+    })
+
+    it('puts the category on the on-budget leg when the other side is off-budget', () => {
+      const brokerage = createAccount({ budgetId: budget.id, name: 'Brokerage', type: 'tracking' })
+      store.saveAccount(brokerage)
+
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: brokerage.id,
+        amount: 10000,
+        date: '2024-01-15',
+        categoryId: category.id,
+      })
+
+      expect(from.categoryId).toBe(category.id)
+      expect(to.categoryId).toBeNull()
+    })
   })
 
   describe('setTransactionCleared', () => {
@@ -223,6 +270,366 @@ describe.each([
       const result = reassignTransaction(store, 'non-existent', category.id)
 
       expect(result).toBeNull()
+    })
+  })
+
+  describe('findTransferPartner', () => {
+    it('finds the other leg of a transfer', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(findTransferPartner(store, from)?.id).toBe(to.id)
+      expect(findTransferPartner(store, to)?.id).toBe(from.id)
+    })
+
+    it('returns null for a transaction that is not a transfer', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: -5000,
+        date: '2024-01-15',
+      })
+
+      expect(findTransferPartner(store, txn)).toBeNull()
+    })
+
+    it('prefers the leg with the mirrored amount when several share a date', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { from } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+      const decoy = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 2500,
+        date: '2024-01-15',
+      })
+
+      expect(findTransferPartner(store, from)?.amount).toBe(10000)
+      expect(findTransferPartner(store, from)?.id).not.toBe(decoy.to.id)
+    })
+
+    it('pairs legs recorded on different dates when the amounts mirror', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+      const inflow = addTransaction(store, {
+        accountId: savings.id,
+        amount: 10000,
+        date: '2024-01-17',
+      })
+      linkTransactions(store, outflow.id, inflow.id)
+
+      const linkedOutflow = store.getTransaction(outflow.id)!
+      expect(findTransferPartner(store, linkedOutflow)?.id).toBe(inflow.id)
+    })
+  })
+
+  describe('linkTransactions', () => {
+    let savings: ReturnType<typeof createAccount>
+
+    beforeEach(() => {
+      savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+    })
+
+    it('links two existing transactions as a transfer pair', () => {
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+      const inflow = addTransaction(store, {
+        accountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      const linked = linkTransactions(store, outflow.id, inflow.id)
+
+      expect(linked.first.transferAccountId).toBe(savings.id)
+      expect(linked.second.transferAccountId).toBe(account.id)
+      expect(store.getTransaction(outflow.id)?.transferAccountId).toBe(savings.id)
+      expect(store.getTransaction(inflow.id)?.transferAccountId).toBe(account.id)
+    })
+
+    it('throws for a missing transaction', () => {
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+
+      expect(() => linkTransactions(store, outflow.id, 'non-existent')).toThrow(
+        'Transaction not found: non-existent'
+      )
+    })
+
+    it('throws when linking a transaction to itself', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+
+      expect(() => linkTransactions(store, txn.id, txn.id)).toThrow(
+        'Cannot link a transaction to itself'
+      )
+    })
+
+    it('throws when both transactions are in the same account', () => {
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+      const inflow = addTransaction(store, {
+        accountId: account.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(() => linkTransactions(store, outflow.id, inflow.id)).toThrow(
+        'Cannot link two transactions in the same account'
+      )
+    })
+
+    it('throws when both legs move money the same way', () => {
+      const first = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+      const second = addTransaction(store, {
+        accountId: savings.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+
+      expect(() => linkTransactions(store, first.id, second.id)).toThrow(
+        'A transfer needs one outflow and one inflow'
+      )
+    })
+
+    it('throws when a transaction is already part of a transfer', () => {
+      const { from } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+      const inflow = addTransaction(store, {
+        accountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(() => linkTransactions(store, from.id, inflow.id)).toThrow(
+        'already part of a transfer'
+      )
+    })
+
+    it('throws when the legs share neither a date nor offsetting amounts', () => {
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+      const inflow = addTransaction(store, {
+        accountId: savings.id,
+        amount: 9000,
+        date: '2024-01-17',
+      })
+
+      expect(() => linkTransactions(store, outflow.id, inflow.id)).toThrow(
+        'Cannot link transactions with different dates'
+      )
+    })
+
+    it('throws when the transactions belong to different budgets', () => {
+      const otherBudget = createBudget({ name: 'Other' })
+      const otherAccount = createAccount({
+        budgetId: otherBudget.id,
+        name: 'Other Checking',
+        type: 'checking',
+      })
+      store.saveBudget(otherBudget)
+      store.saveAccount(otherAccount)
+
+      const outflow = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+      const inflow = addTransaction(store, {
+        accountId: otherAccount.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(() => linkTransactions(store, outflow.id, inflow.id)).toThrow(
+        'Cannot link transactions from different budgets'
+      )
+    })
+  })
+
+  describe('unlinkTransaction', () => {
+    it('clears the link on both sides and keeps both rows', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      const result = unlinkTransaction(store, from.id)
+
+      expect(result.partner?.id).toBe(to.id)
+      expect(store.getTransaction(from.id)?.transferAccountId).toBeNull()
+      expect(store.getTransaction(to.id)?.transferAccountId).toBeNull()
+    })
+
+    it('throws for a transaction that is not a transfer', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: -5000,
+        date: '2024-01-15',
+      })
+
+      expect(() => unlinkTransaction(store, txn.id)).toThrow('not part of a transfer')
+    })
+
+    it('throws for a missing transaction', () => {
+      expect(() => unlinkTransaction(store, 'non-existent')).toThrow(
+        'Transaction not found: non-existent'
+      )
+    })
+  })
+
+  describe('deleteTransactionWithTransfer', () => {
+    it('deletes both legs when given either one', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { from, to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      deleteTransactionWithTransfer(store, to.id)
+
+      expect(store.getTransaction(from.id)).toBeNull()
+      expect(store.getTransaction(to.id)).toBeNull()
+    })
+
+    it('deletes a plain transaction', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: -5000,
+        date: '2024-01-15',
+      })
+
+      deleteTransactionWithTransfer(store, txn.id)
+
+      expect(store.getTransaction(txn.id)).toBeNull()
+    })
+
+    it('does nothing for a missing transaction', () => {
+      expect(() => deleteTransactionWithTransfer(store, 'non-existent')).not.toThrow()
+    })
+
+    it('leaves unrelated transfers alone', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const first = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+      const second = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 2500,
+        date: '2024-01-15',
+      })
+
+      deleteTransactionWithTransfer(store, first.from.id)
+
+      expect(store.getTransaction(second.from.id)).not.toBeNull()
+      expect(store.getTransaction(second.to.id)).not.toBeNull()
+    })
+  })
+
+  describe('countsAsIncome', () => {
+    it('counts an unlinked inflow', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(countsAsIncome(store, txn)).toBe(true)
+    })
+
+    it('does not count outflows', () => {
+      const txn = addTransaction(store, {
+        accountId: account.id,
+        amount: -10000,
+        date: '2024-01-15',
+      })
+
+      expect(countsAsIncome(store, txn)).toBe(false)
+    })
+
+    it('does not count the inflow leg of an on-budget transfer', () => {
+      const savings = createAccount({ budgetId: budget.id, name: 'Savings', type: 'savings' })
+      store.saveAccount(savings)
+
+      const { to } = createTransfer(store, {
+        fromAccountId: account.id,
+        toAccountId: savings.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(countsAsIncome(store, to)).toBe(false)
+    })
+
+    it('counts an inflow transferred in from an off-budget account', () => {
+      const brokerage = createAccount({ budgetId: budget.id, name: 'Brokerage', type: 'tracking' })
+      store.saveAccount(brokerage)
+
+      const { to } = createTransfer(store, {
+        fromAccountId: brokerage.id,
+        toAccountId: account.id,
+        amount: 10000,
+        date: '2024-01-15',
+      })
+
+      expect(countsAsIncome(store, to)).toBe(true)
     })
   })
 })
