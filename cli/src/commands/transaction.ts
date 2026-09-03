@@ -2,7 +2,12 @@ import { Command } from 'commander'
 import {
   addTransaction,
   createPayee,
+  createTransfer,
+  deleteTransactionWithTransfer,
+  findTransferPartner,
   formatCurrency,
+  linkTransactions,
+  unlinkTransaction,
   type Transaction,
 } from '@budget/core'
 import { getStore, saveStore } from '../store.ts'
@@ -53,6 +58,25 @@ function findOrCreatePayee(store: ReturnType<typeof getStore>, budgetId: string,
     store.savePayee(payee)
   }
   return payee
+}
+
+/**
+ * Load a transaction, failing if it is missing or outside the active budget.
+ */
+function requireTransactionInBudget(
+  store: ReturnType<typeof getStore>,
+  budgetId: string,
+  id: string
+) {
+  const transaction = store.getTransaction(id)
+  if (!transaction) {
+    throw new Error(`Transaction not found: ${id}`)
+  }
+  const account = store.getAccount(transaction.accountId)
+  if (account?.budgetId !== budgetId) {
+    throw new Error('Transaction does not belong to the active budget.')
+  }
+  return transaction
 }
 
 /**
@@ -137,6 +161,140 @@ export function registerTransactionCommands(program: Command): void {
         }
       }
     )
+
+  // tx transfer
+  tx
+    .command('transfer')
+    .description('Transfer money between two accounts')
+    .requiredOption('--from <id|name>', '(required) Source account ID or name')
+    .requiredOption('--to <id|name>', '(required) Destination account ID or name')
+    .requiredOption('--amount <amount>', '(required) Amount to move')
+    .option('--category <id|name>', 'Category for the on-budget leg (off-budget transfers only)')
+    .option('--date <date>', 'Transaction date (default: today)')
+    .option('--memo <text>', 'Transaction memo')
+    .option('--cleared', 'Mark both legs as cleared')
+    .action(
+      async (opts: {
+        from: string
+        to: string
+        amount: string
+        category?: string
+        date?: string
+        memo?: string
+        cleared?: boolean
+      }) => {
+        const options = program.opts() as OutputOptions
+        try {
+          const budgetId = requireActiveBudgetId()
+          const store = getStore()
+
+          const fromAccount = findAccount(store, budgetId, opts.from)
+          if (!fromAccount) {
+            throw new Error(`Account not found: ${opts.from}`)
+          }
+
+          const toAccount = findAccount(store, budgetId, opts.to)
+          if (!toAccount) {
+            throw new Error(`Account not found: ${opts.to}`)
+          }
+
+          // The sign is carried by the direction of the transfer, not the amount
+          const amount = Math.abs(parseAmount(opts.amount))
+          if (amount === 0) {
+            throw new Error('Transfer amount must be greater than zero')
+          }
+
+          const date = opts.date ? parseDate(opts.date) : getTodayISO()
+
+          let categoryId: string | null = null
+          if (opts.category) {
+            const category = findCategory(store, budgetId, opts.category)
+            if (!category) {
+              throw new Error(`Category not found: ${opts.category}`)
+            }
+            categoryId = category.id
+          }
+
+          const transfer = createTransfer(store, {
+            fromAccountId: fromAccount.id,
+            toAccountId: toAccount.id,
+            amount,
+            date,
+            memo: opts.memo ?? null,
+            cleared: opts.cleared ?? false,
+            categoryId,
+          })
+
+          saveStore()
+
+          outputSuccess(
+            `Transferred ${formatCurrency(amount)} from ${fromAccount.name} to ${toAccount.name}`,
+            options,
+            transfer
+          )
+        } catch (error) {
+          outputError(error as Error, options)
+        }
+      }
+    )
+
+  // tx link <id> <id>
+  tx
+    .command('link <id> <otherId>')
+    .description('Link two existing transactions as the two legs of a transfer')
+    .action(async (id: string, otherId: string) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        const first = requireTransactionInBudget(store, budgetId, id)
+        const second = requireTransactionInBudget(store, budgetId, otherId)
+
+        const linked = linkTransactions(store, first.id, second.id)
+        saveStore()
+
+        const firstAccount = store.getAccount(linked.first.accountId)
+        const secondAccount = store.getAccount(linked.second.accountId)
+
+        outputSuccess(
+          `Linked transfer between ${firstAccount?.name ?? linked.first.accountId} and ${
+            secondAccount?.name ?? linked.second.accountId
+          }`,
+          options,
+          linked
+        )
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
+
+  // tx unlink <id>
+  tx
+    .command('unlink <id>')
+    .description('Clear the transfer link on a transaction and its partner')
+    .action(async (id: string) => {
+      const options = program.opts() as OutputOptions
+      try {
+        const budgetId = requireActiveBudgetId()
+        const store = getStore()
+
+        const transaction = requireTransactionInBudget(store, budgetId, id)
+
+        const result = unlinkTransaction(store, transaction.id)
+        saveStore()
+
+        outputSuccess(
+          result.partner
+            ? 'Unlinked transfer on both transactions'
+            : 'Unlinked transfer (no partner transaction found)',
+          options,
+          result
+        )
+      } catch (error) {
+        outputError(error as Error, options)
+      }
+    })
 
   // tx list
   tx
@@ -398,20 +556,20 @@ export function registerTransactionCommands(program: Command): void {
         const budgetId = requireActiveBudgetId()
         const store = getStore()
 
-        const transaction = store.getTransaction(id)
-        if (!transaction) {
-          throw new Error(`Transaction not found: ${id}`)
-        }
+        const transaction = requireTransactionInBudget(store, budgetId, id)
 
-        const account = store.getAccount(transaction.accountId)
-        if (account?.budgetId !== budgetId) {
-          throw new Error('Transaction does not belong to the active budget.')
-        }
-
-        store.deleteTransaction(id)
+        // Both legs of a transfer are one movement of money; deleting one deletes both
+        const partner = findTransferPartner(store, transaction)
+        deleteTransactionWithTransfer(store, id)
         saveStore()
 
-        outputSuccess('Transaction deleted', options, { id })
+        outputSuccess(
+          partner
+            ? 'Transaction deleted, along with the other leg of its transfer'
+            : 'Transaction deleted',
+          options,
+          partner ? { id, transferPartnerId: partner.id } : { id }
+        )
       } catch (error) {
         outputError(error as Error, options)
       }

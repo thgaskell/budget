@@ -38,6 +38,7 @@ interface TestWorld extends World {
   groups: Map<string, CategoryGroup>
   categories: Map<string, Category>
   lastTransactionId: string
+  namedIds: Map<string, string>
   dbPath?: string
   usedDbPaths: string[]
 }
@@ -51,6 +52,7 @@ Before(function (this: TestWorld) {
   this.exitCode = 0
   this.capturedId = ''
   this.lastTransactionId = ''
+  this.namedIds = new Map()
   this.usedDbPaths = []
 
   // Set up test config directory
@@ -311,6 +313,29 @@ Given('I capture the last transaction ID', function (this: TestWorld) {
   this.capturedId = this.lastTransactionId
 })
 
+// Remember a transaction ID under a name, for steps needing more than one ID
+Given('I capture the last transaction ID as {string}', function (this: TestWorld, name: string) {
+  this.namedIds.set(name, this.lastTransactionId)
+})
+
+// Capture a transaction created by a command rather than by a Given step
+Given(
+  'I capture the last transaction ID in {string}',
+  function (this: TestWorld, accountName: string) {
+    const account = this.accounts.get(accountName)
+    if (!account) {
+      throw new Error(`Account "${accountName}" not found`)
+    }
+    const transactions = this.store.listTransactions(account.id)
+    const last = transactions[transactions.length - 1]
+    if (!last) {
+      throw new Error(`No transactions in account "${accountName}"`)
+    }
+    this.capturedId = last.id
+    this.lastTransactionId = last.id
+  }
+)
+
 // Transaction with date (for carryover testing)
 Given(
   'a transaction of ${int} in {string} from {string} on {string}',
@@ -368,7 +393,15 @@ Given(
 
 // Command execution - defined once, used by both When and Given contexts
 defineStep('I run {string}', async function (this: TestWorld, command: string) {
-  const resolvedCommand = command.replace('<captured-id>', this.capturedId)
+  const resolvedCommand = command
+    .replace('<captured-id>', this.capturedId)
+    .replace(/<id:([^>]+)>/g, (_match, name: string) => {
+      const id = this.namedIds.get(name)
+      if (!id) {
+        throw new Error(`No transaction ID captured as "${name}"`)
+      }
+      return id
+    })
   const { runCommand } = await import('./command-runner.ts')
   const result = await runCommand(resolvedCommand, this.store)
   this.output = result.output

@@ -61,6 +61,78 @@ Feature: Transaction Management
     Then the command should succeed
     And the output should contain "Transaction deleted"
 
+  Scenario: Transfer money between two on-budget accounts
+    Given an account named "Savings" of type "savings" exists
+    And a transaction of $3000 in "Checking" from "Employer"
+    When I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    Then the command should succeed
+    And the output should contain "Transferred $500.00 from Checking to Savings"
+
+  Scenario: A transfer does not inflate Ready to Assign
+    Given an account named "Savings" of type "savings" exists
+    And a transaction of $3000 in "Checking" from "Employer"
+    When I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And I run "budget available"
+    Then the output should contain "$3,000.00"
+    And the output should not contain "$3,500.00"
+
+  Scenario: A credit card payment does not inflate Ready to Assign
+    Given an account named "Visa" of type "credit" exists
+    And a transaction of $1000 in "Checking" from "Employer"
+    When I run "budget tx transfer --from 'Checking' --to 'Visa' --amount 100"
+    And I run "budget available"
+    Then the output should contain "$1,000.00"
+    And the output should not contain "$1,100.00"
+
+  Scenario: Show a transfer
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx show <captured-id>"
+    Then the output should contain "Transfer: Checking"
+
+  Scenario: Deleting one leg of a transfer deletes both
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx delete <captured-id>"
+    Then the command should succeed
+    And the output should contain "Transaction deleted"
+    And I run "budget tx list"
+    And the output should contain "No transactions found."
+
+  Scenario: Link two existing transactions as a transfer
+    Given an account named "Savings" of type "savings" exists
+    And a transaction of $3000 in "Checking" from "Employer"
+    And a transaction of -$500 in "Checking" from "Transfer"
+    And I capture the last transaction ID as "outflow"
+    And a transaction of $500 in "Savings" from "Transfer"
+    And I capture the last transaction ID as "inflow"
+    When I run "budget available"
+    Then the output should contain "$3,500.00"
+    When I run "budget tx link <id:outflow> <id:inflow>"
+    Then the command should succeed
+    And the output should contain "Linked transfer between Checking and Savings"
+    When I run "budget available"
+    Then the output should contain "$3,000.00"
+
+  Scenario: Unlink a transfer
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    And I capture the last transaction ID in "Savings"
+    When I run "budget tx unlink <captured-id>"
+    Then the command should succeed
+    And the output should contain "Unlinked transfer on both transactions"
+    And I run "budget available"
+    And the output should contain "$500.00"
+
+  Scenario: JSON output includes the transfer link
+    Given an account named "Savings" of type "savings" exists
+    And I run "budget tx transfer --from 'Checking' --to 'Savings' --amount 500"
+    When I run "budget tx list --json"
+    Then the output should be valid JSON
+    And the JSON should contain "transferAccountId"
+
   Scenario: JSON output for transaction list
     Given a transaction of $1000 in "Checking" from "JSON Test"
     When I run "budget tx list --json"
