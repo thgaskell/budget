@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-04
+
 ### Changed
 
 - **Exports are schema version 2, and older files still open** - transactions now
