@@ -1,0 +1,331 @@
+{
+  "version": "1.0",
+  "schemaVersion": 2,
+  "exportedAt": "2026-08-15T12:00:00.000Z",
+  "budgets": [
+    {
+      "budget": {
+        "id": "00000000-0000-4000-8000-budget000000",
+        "name": "Household",
+        "currency": "USD"
+      },
+      "accounts": [
+        {
+          "id": "00000000-0000-4000-8000-checking0000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Checking",
+          "type": "checking",
+          "onBudget": true
+        },
+        {
+          "id": "00000000-0000-4000-8000-savings00000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Savings",
+          "type": "savings",
+          "onBudget": true
+        },
+        {
+          "id": "00000000-0000-4000-8000-credit000000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Visa",
+          "type": "credit",
+          "onBudget": true
+        },
+        {
+          "id": "00000000-0000-4000-8000-brokerage000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Brokerage",
+          "type": "tracking",
+          "onBudget": false
+        }
+      ],
+      "categoryGroups": [
+        {
+          "id": "00000000-0000-4000-8000-g0bills00000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Bills",
+          "sortOrder": 0
+        },
+        {
+          "id": "00000000-0000-4000-8000-g0fun0000000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Fun",
+          "sortOrder": 1
+        }
+      ],
+      "categories": [
+        {
+          "id": "00000000-0000-4000-8000-c0rent000000",
+          "groupId": "00000000-0000-4000-8000-g0bills00000",
+          "name": "Rent",
+          "sortOrder": 0
+        },
+        {
+          "id": "00000000-0000-4000-8000-c0dining0000",
+          "groupId": "00000000-0000-4000-8000-g0fun0000000",
+          "name": "Dining",
+          "sortOrder": 0
+        },
+        {
+          "id": "00000000-0000-4000-8000-c0groceries0",
+          "groupId": "00000000-0000-4000-8000-g0bills00000",
+          "name": "Groceries",
+          "sortOrder": 1
+        },
+        {
+          "id": "00000000-0000-4000-8000-c0vacation00",
+          "groupId": "00000000-0000-4000-8000-g0fun0000000",
+          "name": "Vacation",
+          "sortOrder": 1
+        }
+      ],
+      "payees": [
+        {
+          "id": "00000000-0000-4000-8000-p0landlord00",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Landlord"
+        },
+        {
+          "id": "00000000-0000-4000-8000-p0market0000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Corner Market"
+        },
+        {
+          "id": "00000000-0000-4000-8000-p0cafe000000",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Cafe"
+        },
+        {
+          "id": "00000000-0000-4000-8000-p0employer00",
+          "budgetId": "00000000-0000-4000-8000-budget000000",
+          "name": "Employer"
+        }
+      ],
+      "transactions": [
+        {
+          "id": "00000000-0000-4000-8000-tx0003000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": null,
+          "payeeId": "00000000-0000-4000-8000-p0employer00",
+          "date": "2026-08-01",
+          "amount": 400000,
+          "cleared": true,
+          "memo": "Paycheck",
+          "transferAccountId": null,
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0004000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": "00000000-0000-4000-8000-c0rent000000",
+          "payeeId": "00000000-0000-4000-8000-p0landlord00",
+          "date": "2026-08-02",
+          "amount": -150000,
+          "cleared": true,
+          "memo": null,
+          "transferAccountId": null,
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0008000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-03",
+          "amount": -50000,
+          "cleared": false,
+          "memo": "Emergency fund",
+          "transferAccountId": "00000000-0000-4000-8000-savings00000",
+          "transferId": "00000000-0000-4000-8000-tx0009000000"
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0005000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": "00000000-0000-4000-8000-c0groceries0",
+          "payeeId": "00000000-0000-4000-8000-p0market0000",
+          "date": "2026-08-05",
+          "amount": -8450,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": null,
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0010000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-07",
+          "amount": -1275,
+          "cleared": false,
+          "memo": "Card payment",
+          "transferAccountId": "00000000-0000-4000-8000-credit000000",
+          "transferId": "00000000-0000-4000-8000-tx0011000000"
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0012000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": "00000000-0000-4000-8000-c0vacation00",
+          "payeeId": null,
+          "date": "2026-08-08",
+          "amount": -20000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": "00000000-0000-4000-8000-brokerage000",
+          "transferId": "00000000-0000-4000-8000-tx0013000000"
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0007000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": "00000000-0000-4000-8000-c0groceries0",
+          "payeeId": "00000000-0000-4000-8000-p0market0000",
+          "date": "2026-08-09",
+          "amount": -5000,
+          "cleared": true,
+          "memo": null,
+          "transferAccountId": null,
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0014000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-10",
+          "amount": -5000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": "00000000-0000-4000-8000-savings00000",
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0016000000",
+          "accountId": "00000000-0000-4000-8000-checking0000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-10",
+          "amount": -5000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": "00000000-0000-4000-8000-savings00000",
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0009000000",
+          "accountId": "00000000-0000-4000-8000-savings00000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-03",
+          "amount": 50000,
+          "cleared": false,
+          "memo": "Emergency fund",
+          "transferAccountId": "00000000-0000-4000-8000-checking0000",
+          "transferId": "00000000-0000-4000-8000-tx0008000000"
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0015000000",
+          "accountId": "00000000-0000-4000-8000-savings00000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-10",
+          "amount": 5000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": "00000000-0000-4000-8000-checking0000",
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0017000000",
+          "accountId": "00000000-0000-4000-8000-savings00000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-10",
+          "amount": 5000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": "00000000-0000-4000-8000-checking0000",
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0006000000",
+          "accountId": "00000000-0000-4000-8000-credit000000",
+          "categoryId": "00000000-0000-4000-8000-c0dining0000",
+          "payeeId": "00000000-0000-4000-8000-p0cafe000000",
+          "date": "2026-08-06",
+          "amount": -1275,
+          "cleared": false,
+          "memo": "Lunch",
+          "transferAccountId": null,
+          "transferId": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0011000000",
+          "accountId": "00000000-0000-4000-8000-credit000000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-07",
+          "amount": 1275,
+          "cleared": false,
+          "memo": "Card payment",
+          "transferAccountId": "00000000-0000-4000-8000-checking0000",
+          "transferId": "00000000-0000-4000-8000-tx0010000000"
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0013000000",
+          "accountId": "00000000-0000-4000-8000-brokerage000",
+          "categoryId": null,
+          "payeeId": null,
+          "date": "2026-08-08",
+          "amount": 20000,
+          "cleared": false,
+          "memo": null,
+          "transferAccountId": "00000000-0000-4000-8000-checking0000",
+          "transferId": "00000000-0000-4000-8000-tx0012000000"
+        }
+      ],
+      "targets": [
+        {
+          "id": "00000000-0000-4000-8000-tx0002000000",
+          "categoryId": "00000000-0000-4000-8000-c0groceries0",
+          "type": "spending_limit",
+          "amount": 60000,
+          "targetDate": null
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0001000000",
+          "categoryId": "00000000-0000-4000-8000-c0vacation00",
+          "type": "savings_balance",
+          "amount": 200000,
+          "targetDate": "2026-12-01"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "00000000-0000-4000-8000-tx0018000000",
+          "categoryId": "00000000-0000-4000-8000-c0rent000000",
+          "month": "2026-08",
+          "amount": 150000
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0019000000",
+          "categoryId": "00000000-0000-4000-8000-c0groceries0",
+          "month": "2026-08",
+          "amount": 30000
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0020000000",
+          "categoryId": "00000000-0000-4000-8000-c0dining0000",
+          "month": "2026-08",
+          "amount": 5000
+        },
+        {
+          "id": "00000000-0000-4000-8000-tx0021000000",
+          "categoryId": "00000000-0000-4000-8000-c0vacation00",
+          "month": "2026-08",
+          "amount": 20000
+        }
+      ],
+      "monthSummaries": []
+    }
+  ]
+}
