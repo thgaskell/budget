@@ -12,43 +12,29 @@
   - `--date`, `--memo` and `--cleared` apply to both legs
   - Accounts resolve by ID or name, as elsewhere in `tx`
   - `budget tx link <id> <otherId>` links two transactions that already exist - for
-    imports, where both legs land before the pair is recognised
+    imports, where both legs land before the pair is recognised. The two must offset
+    exactly; their dates may differ
   - `budget tx unlink <id>` clears the link on both sides, leaving the rows intact
   - `--json` output exposes `transferAccountId` and `transferId`
 
-### Fixed
-
-- **`tx edit` and `tx delete` act on the transfer leg that was actually recorded** -
-  the other leg used to be searched for by account, amount and date, which cannot tell
-  two same-day $50 Checking-to-Savings transfers apart. `budget tx delete` on one of
-  them deleted a leg of the *other* transfer, leaving two orphaned halves and an
-  account balance that no longer matched; `tx edit --amount` mirrored the new amount
-  onto the wrong leg. Both legs now record each other's transaction id
-- **Neither command touches a transfer whose other leg is not recorded** - transfers
-  saved before the id was recorded (databases upgraded to schema v2) have no partner on
-  file, and the old search would delete or edit a guess. `tx edit --amount/--account/
-  --category` and `tx delete` now fail on such a leg, naming it and telling you to run
-  `tx unlink <id>` and then `tx link <id> <otherId>` to record the two legs; edits that
-  cannot break the pair (payee, memo, date, cleared) still work. `tx unlink` on such a
-  leg clears that leg alone and says so
-- **`tx edit` no longer corrupts a transfer** - it applied `--amount`, `--account` and
-  `--category` to a linked leg with no awareness of its partner. Editing one leg of a
-  $500 transfer to $900 left the other at -$500, so $400 existed with no income
-  recorded and Ready to Assign stayed $0.00; `--account` left a stale transfer label
-  whose partner a later `tx delete` then silently orphaned; `--category` on an
-  on-budget-to-on-budget leg added $500 of spendable money to a category that no income
-  ever entered. `tx edit` now goes through `updateTransaction()`: the other leg follows
-  a new amount or account, and an edit that would break the pair - a category where
-  both accounts are on-budget, a zero amount - is refused with the reason
-- **`tx link` requires the two legs to offset exactly** - a same-date pair was accepted
-  however mismatched, so linking -$100 to an unrelated $250 inflow hid $150 of real
-  income from Ready to Assign
-
 ### Changed
 
+- **`tx edit` follows a transfer to its other leg** - it saved the edited row on its
+  own, so changing one leg of a $500 transfer to $900 left the other at -$500 and $400
+  existed with no income recorded. A new `--amount` is now mirrored onto the partner
+  and `--account` repoints it; `--payee`, `--memo`, `--date` and `--cleared` change
+  only the leg named. An edit that would break the pair - a category where both
+  accounts are on-budget, a zero amount - is refused with the reason
+- **`tx delete` removes both legs of a transfer** - it deleted the one row and left
+  its partner behind as half a transfer. Deleting either side now deletes the other
+  and says so
+- **Neither command touches a transfer whose other leg is not recorded** - transfers
+  saved before schema v2 have no partner on file, and acting on a guess is how legs of
+  the wrong transfer get deleted. `tx edit --amount/--account/--category` and
+  `tx delete` fail on such a leg, naming it and telling you to run `tx unlink <id>`
+  and then `tx link <id> <otherId>` to record the pair; edits that cannot break the
+  pair still work, and `tx unlink` on such a leg clears that leg alone and says so
 - **Auto-migrate on Load** - CLI now uses `createUnmigrated()` and auto-migrates old databases with user notification (shows version transition and migration descriptions)
-- **`tx delete` removes both legs of a transfer** - Deleting either side now deletes
-  its partner and says so, instead of orphaning a half-transfer
 
 ## [0.3.0] - 2026-01-04
 

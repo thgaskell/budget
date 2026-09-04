@@ -2,18 +2,19 @@
 
 ## [Unreleased]
 
-### Fixed
+### Changed
 
-- **Transfer link lost when editing a transaction** - The edit modal rebuilt the transaction without core's new `transferId`, so saving any edit to a transfer leg (even just its memo) dropped the link to its partner leg and left it out of the next export. The modal now carries `transferId` through unchanged, alongside `transferAccountId`.
+- **Exports are schema version 2, and older files still open** - transactions now
+  carry `transferId`, the other leg of a transfer, through import, editing and
+  export. A file exported by an earlier version (schema 1) is upgraded on import
+  rather than refused; its transfers keep their accounts but are not paired, and a
+  file from a newer version is refused with a message saying so
+- **Unified Export Format** - Export now uses `store.toJSON()` for complete data including all transactions, schemaVersion, and monthSummaries (previously only exported current month's transactions)
+- **Unified Import Format** - Import now uses `store.fromJSON()` with `StoreExportData` type from `@budget/core` for cross-platform compatibility with CLI
 
 ### Added
 
 - **Transfer round-trip QA script** - `bun run qa:transfer` mounts the real transaction modal against a schema-2 fixture (`qa-tests/budget-v2.json`) and checks that import, a memo edit through the modal's save path, and export all preserve `transferId` and `transferAccountId`.
-
-### Changed
-
-- **Unified Export Format** - Export now uses `store.toJSON()` for complete data including all transactions, schemaVersion, and monthSummaries (previously only exported current month's transactions)
-- **Unified Import Format** - Import now uses `store.fromJSON()` with `StoreExportData` type from `@budget/core` for cross-platform compatibility with CLI
 
 ### Removed
 
