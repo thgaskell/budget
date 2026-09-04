@@ -3,7 +3,15 @@ export { MemoryStore } from './memory.ts'
 export { SqliteStore } from './sqlite.ts'
 
 // Re-export migration utilities for consumers
-export type { Migration, SchemaVersion, MigrationResult, MigrationOptions, MigrationLogEntry } from '../migrations/index.ts'
+export type {
+  Migration,
+  SchemaVersion,
+  MigrationResult,
+  MigrationOptions,
+  MigrationLogEntry,
+  JsonExportData,
+  JsonBudgetData,
+} from '../migrations/index.ts'
 export { MigrationValidationError } from '../migrations/index.ts'
 export {
   migrations,
@@ -12,5 +20,6 @@ export {
   getAppliedVersions,
   getPendingMigrations,
   runMigrations,
+  upgradeExportData,
   getLatestVersion,
 } from '../migrations/index.ts'
