@@ -8,7 +8,7 @@ import type { Payee } from '../schemas/payee.ts'
 import type { Target } from '../schemas/target.ts'
 import type { Transaction } from '../schemas/transaction.ts'
 import type { Store, TransactionQueryOptions, StoreExportData } from './types.ts'
-import { migrations, getLatestVersion } from '../migrations/index.ts'
+import { migrations, getLatestVersion, upgradeExportData } from '../migrations/index.ts'
 
 /**
  * In-memory store implementation.
@@ -71,17 +71,15 @@ export class MemoryStore implements Store {
    * Import data from portable JSON format.
    * Replaces all existing data in the store.
    *
-   * @throws Error if schemaVersion doesn't match current version
+   * Data exported at an older schema version is upgraded on the way in, through the
+   * same migrations the database goes through, so a file exported by any earlier
+   * release still imports. The caller's object is not modified.
+   *
+   * @throws Error if the data is from a newer schema version than this library knows
    */
   fromJSON(data: StoreExportData): void {
-    const currentVersion = this.getSchemaVersion()
-    if (data.schemaVersion !== currentVersion) {
-      throw new Error(
-        `Cannot import data with schema version ${data.schemaVersion}. ` +
-        `Store is at version ${currentVersion}. ` +
-        `Migrate the data first.`
-      )
-    }
+    // Cast: the upgrade chain ends at the current schema version by construction
+    data = upgradeExportData(data, migrations) as unknown as StoreExportData
 
     // Clear existing data
     this.budgets.clear()

@@ -10,7 +10,13 @@ import {
   getLatestVersion,
   MigrationValidationError,
 } from '../../src/migrations/index.ts'
-import type { Migration } from '../../src/migrations/index.ts'
+import type { Migration, JsonExportData } from '../../src/migrations/index.ts'
+
+/**
+ * A JSON counterpart that changes nothing, for migrations invented by these tests.
+ * Every migration must have one - see the drift guard in json-upgrade.spec.ts.
+ */
+const passThrough = (data: JsonExportData): JsonExportData => data
 
 describe('Migration Runner', () => {
   let db: Database
@@ -167,9 +173,9 @@ describe('Migration Runner', () => {
   describe('validateMigrations', () => {
     it('accepts valid sequential migrations', () => {
       const valid: Migration[] = [
-        { version: 1, description: 'First', up: () => {} },
-        { version: 2, description: 'Second', up: () => {} },
-        { version: 3, description: 'Third', up: () => {} },
+        { version: 1, description: 'First', up: () => {}, upgradeJson: passThrough },
+        { version: 2, description: 'Second', up: () => {}, upgradeJson: passThrough },
+        { version: 3, description: 'Third', up: () => {}, upgradeJson: passThrough },
       ]
       expect(() => validateMigrations(valid)).not.toThrow()
     })
@@ -180,8 +186,8 @@ describe('Migration Runner', () => {
 
     it('rejects duplicate versions', () => {
       const invalid: Migration[] = [
-        { version: 1, description: 'First', up: () => {} },
-        { version: 1, description: 'Duplicate', up: () => {} },
+        { version: 1, description: 'First', up: () => {}, upgradeJson: passThrough },
+        { version: 1, description: 'Duplicate', up: () => {}, upgradeJson: passThrough },
       ]
       expect(() => validateMigrations(invalid)).toThrow(MigrationValidationError)
       expect(() => validateMigrations(invalid)).toThrow('Duplicate migration versions')
@@ -189,8 +195,8 @@ describe('Migration Runner', () => {
 
     it('rejects out-of-order versions', () => {
       const invalid: Migration[] = [
-        { version: 2, description: 'Second', up: () => {} },
-        { version: 1, description: 'First', up: () => {} },
+        { version: 2, description: 'Second', up: () => {}, upgradeJson: passThrough },
+        { version: 1, description: 'First', up: () => {}, upgradeJson: passThrough },
       ]
       expect(() => validateMigrations(invalid)).toThrow(MigrationValidationError)
       expect(() => validateMigrations(invalid)).toThrow('ascending version order')
@@ -198,20 +204,24 @@ describe('Migration Runner', () => {
 
     it('rejects gaps in version numbers', () => {
       const invalid: Migration[] = [
-        { version: 1, description: 'First', up: () => {} },
-        { version: 3, description: 'Third (missing 2)', up: () => {} },
+        { version: 1, description: 'First', up: () => {}, upgradeJson: passThrough },
+        { version: 3, description: 'Third (missing 2)', up: () => {}, upgradeJson: passThrough },
       ]
       expect(() => validateMigrations(invalid)).toThrow(MigrationValidationError)
       expect(() => validateMigrations(invalid)).toThrow('gap detected')
     })
 
     it('rejects non-positive versions', () => {
-      const invalid: Migration[] = [{ version: 0, description: 'Zero', up: () => {} }]
+      const invalid: Migration[] = [
+        { version: 0, description: 'Zero', up: () => {}, upgradeJson: passThrough },
+      ]
       expect(() => validateMigrations(invalid)).toThrow(MigrationValidationError)
     })
 
     it('rejects empty descriptions', () => {
-      const invalid: Migration[] = [{ version: 1, description: '', up: () => {} }]
+      const invalid: Migration[] = [
+        { version: 1, description: '', up: () => {}, upgradeJson: passThrough },
+      ]
       expect(() => validateMigrations(invalid)).toThrow(MigrationValidationError)
     })
   })
@@ -260,6 +270,7 @@ describe('Staged Migration (multi-version)', () => {
       up: (database: Database) => {
         database.run('CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT)')
       },
+      upgradeJson: passThrough,
     },
     {
       version: 2,
@@ -267,6 +278,7 @@ describe('Staged Migration (multi-version)', () => {
       up: (database: Database) => {
         database.run('ALTER TABLE users ADD COLUMN email TEXT')
       },
+      upgradeJson: passThrough,
     },
     {
       version: 3,
@@ -274,6 +286,7 @@ describe('Staged Migration (multi-version)', () => {
       up: (database: Database) => {
         database.run('CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT, title TEXT)')
       },
+      upgradeJson: passThrough,
     },
   ]
 

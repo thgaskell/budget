@@ -4,6 +4,23 @@
 
 ### Fixed
 
+- **An export from an older schema version imports instead of being rejected** -
+  `MemoryStore.fromJSON()` and `SqliteStore.fromJSON()` threw on any `schemaVersion`
+  but the current one, and nothing existed to migrate a file with: `runMigrations()`
+  only ever operated on a database. Schema 2 is the first bump this project has made,
+  so on the day it shipped every budget anyone had exported - all of them schema 1 -
+  became unimportable, the hosted webapp holding no copy of its own. `fromJSON()` now
+  upgrades the document on the way in through `upgradeExportData()`, which walks the
+  same migration list the database walks and stamps `schemaVersion` as it goes. A file
+  from a *newer* version is still refused, now saying that the library is the thing
+  that is out of date. The caller's object is not modified
+- **Upgrading a version 1 export sets `transferId` to null on every transaction** -
+  and pairs nothing. A version 1 file records a transfer only as `transferAccountId` on
+  each leg, so recovering a pair from it would mean matching on account, amount and
+  date - the guesswork `transferId` exists to remove, no more reliable in a file than
+  in a table, and wrong in exactly the case that motivated the column: two identical
+  transfers on the same day. Legs keep their `transferAccountId` and stay transfers for
+  the budget rules; re-pairing is the user's call, by id, through `tx link`
 - **A transfer pair is now recorded by transaction id, not searched for** -
   `findTransferPartner()` located the other leg by scanning the partner account for a
   row pointing back, preferring a mirrored amount and then the nearest date. Two $50
@@ -54,6 +71,12 @@
 
 ### Added
 
+- **`upgradeExportData(data, migrations)`** - Upgrades an exported JSON document to the
+  latest schema version, the counterpart of `runMigrations()` for data held in a file.
+  Every `Migration` now carries both halves of its change: `up()` for a database and
+  `upgradeJson()` for an export. Omitting the latter is a type error and a
+  `MigrationValidationError`, so no future version can migrate SQL alone and leave
+  exported files unimportable
 - **`Transaction.transferId`** - The other leg's transaction id, carried by both store
   backends and by the JSON export/import format. Schema migration 002 adds the column;
   rows written before it keep `transferId = null`

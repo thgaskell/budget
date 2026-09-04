@@ -1,5 +1,5 @@
 import type { Database } from 'sql.js'
-import type { Migration } from './types.ts'
+import type { Migration, JsonExportData } from './types.ts'
 
 /**
  * Initial database schema.
@@ -103,5 +103,14 @@ export const migration: Migration = {
       CREATE INDEX IF NOT EXISTS idx_assignments_category_month ON assignments(category_id, month);
       CREATE INDEX IF NOT EXISTS idx_month_summaries_budget_month ON month_summaries(budget_id, month);
     `)
+  },
+
+  /**
+   * Nothing to upgrade: version 1 is the first schema there is, so no export document
+   * below it was ever written. Present because every migration carries a JSON
+   * counterpart.
+   */
+  upgradeJson(data: JsonExportData): JsonExportData {
+    return data
   },
 }

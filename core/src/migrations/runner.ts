@@ -5,6 +5,7 @@ import {
   type MigrationResult,
   type MigrationOptions,
   type MigrationLogEntry,
+  type JsonExportData,
   MigrationValidationError,
   MigrationSchema,
   SchemaVersionRowSchema,
@@ -21,6 +22,11 @@ export const migrations: Migration[] = [migration001, migration002]
 
 /**
  * Validate that migrations are properly ordered and sequential.
+ *
+ * A migration must carry both halves of its schema change - `up` for a database and
+ * `upgradeJson` for an exported file - so a new version cannot land in SQL only and
+ * leave every exported budget unimportable.
+ *
  * Throws MigrationValidationError if validation fails.
  */
 export function validateMigrations(migrationList: Migration[]): void {
@@ -30,6 +36,16 @@ export function validateMigrations(migrationList: Migration[]): void {
 
   // Validate each migration definition with zod
   for (const migration of migrationList) {
+    // Checked first, so drift between the two halves is named rather than reported as
+    // a generic shape mismatch
+    if (typeof migration.upgradeJson !== 'function') {
+      throw new MigrationValidationError(
+        `Migration ${migration.version} has no upgradeJson(). ` +
+        `A schema version must upgrade exported JSON as well as the database, ` +
+        `or every file exported before it becomes unimportable.`
+      )
+    }
+
     const result = MigrationSchema.safeParse(migration)
     if (!result.success) {
       throw new MigrationValidationError(
@@ -60,6 +76,60 @@ export function validateMigrations(migrationList: Migration[]): void {
       )
     }
   }
+}
+
+/**
+ * Upgrade an exported JSON document to the latest schema version.
+ *
+ * The counterpart of `runMigrations()` for data that lives in a file rather than a
+ * database: each migration from just after the document's version up to the latest is
+ * applied in order through its `upgradeJson()`, and `schemaVersion` is stamped after
+ * each step. A document already at the latest version is returned unchanged.
+ *
+ * The input is never mutated.
+ *
+ * @param data - The parsed export document
+ * @param migrationList - The list of migrations to upgrade through
+ * @throws MigrationValidationError if the migrations are invalid
+ * @throws Error if the document is from a newer schema version than this library knows,
+ *   or if its `schemaVersion` is not a positive integer
+ *
+ * @example
+ * ```typescript
+ * const upgraded = upgradeExportData(JSON.parse(text), migrations)
+ * ```
+ */
+export function upgradeExportData(
+  data: JsonExportData,
+  migrationList: Migration[]
+): JsonExportData {
+  validateMigrations(migrationList)
+
+  const latestVersion = getLatestVersion(migrationList)
+  const dataVersion = data.schemaVersion
+
+  if (!Number.isInteger(dataVersion) || dataVersion < 1) {
+    throw new Error(
+      `Cannot import data with schema version ${dataVersion}. ` +
+      `A schema version must be a positive integer.`
+    )
+  }
+
+  if (dataVersion > latestVersion) {
+    throw new Error(
+      `Cannot import data with schema version ${dataVersion}. ` +
+      `This library only supports up to version ${latestVersion}. ` +
+      `Please update to a newer version of the library.`
+    )
+  }
+
+  let upgraded = data
+  for (const migration of migrationList) {
+    if (migration.version <= dataVersion) continue
+    upgraded = { ...migration.upgradeJson(upgraded), schemaVersion: migration.version }
+  }
+
+  return upgraded
 }
 
 /**

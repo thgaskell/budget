@@ -1,5 +1,5 @@
 import type { Database } from 'sql.js'
-import type { Migration } from './types.ts'
+import type { Migration, JsonExportData } from './types.ts'
 
 /**
  * Record the other leg of a transfer explicitly.
@@ -29,5 +29,28 @@ export const migration: Migration = {
 
       CREATE INDEX IF NOT EXISTS idx_transactions_transfer ON transactions(transfer_id);
     `)
+  },
+
+  /**
+   * The same change for an exported file: every transaction gains `transferId: null`.
+   *
+   * Null for all of them, exactly as the SQL side leaves existing rows. A version 1
+   * export records a transfer only as `transferAccountId` on each leg, so recovering a
+   * pair from it would mean matching on account, amount and date - the guesswork this
+   * column exists to remove, and no more reliable in a file than in a table. Legs keep
+   * their `transferAccountId` and stay transfers for the budget rules; re-pairing them
+   * is the user's call, by id, through `tx link`.
+   */
+  upgradeJson(data: JsonExportData): JsonExportData {
+    return {
+      ...data,
+      budgets: data.budgets.map((budgetData) => ({
+        ...budgetData,
+        transactions: budgetData.transactions.map((transaction) => ({
+          ...(transaction as Record<string, unknown>),
+          transferId: null,
+        })),
+      })),
+    }
   },
 }
