@@ -181,6 +181,7 @@ export function TransactionModal({
       cleared: transaction?.cleared ?? false,
       memo: memo.trim() || null,
       transferAccountId: transaction?.transferAccountId ?? null,
+      transferId: transaction?.transferId ?? null,
     }
 
     onSave(transactionData)
