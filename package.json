@@ -15,7 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "features": "NODE_OPTIONS='--import tsx' cucumber-js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit; s=$?; bun run --cwd webapp typecheck || s=$?; exit $s",
     "cli": "bun run cli/src/index.ts"
   },
   "workspaces": [
