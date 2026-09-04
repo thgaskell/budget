@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-04
+
 ### Added
 
 - **Transfer Commands** - Move money between your own accounts without inventing income
